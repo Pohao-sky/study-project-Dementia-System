@@ -1,0 +1,64 @@
+.elder-login-container {
+  max-width: 380px;
+  margin: 60px auto;
+  background: #f5f5f5;
+  border-radius: 24px;
+  box-shadow: 0 4px 24px #cccccc;
+  padding: 32px;
+
+  .elder-form {
+    label {
+      display: block;
+      margin-top: 18px;
+      font-size: 1.3rem;
+      color: #333333;
+    }
+
+    .elder-input {
+      width: 100%;
+      font-size: 1.3rem;
+      padding: 12px 10px;
+      margin-top: 6px;
+      border-radius: 10px;
+      border: 1.5px solid #999999;
+      outline: none;
+      background: #fafafa;
+
+      &:focus {
+        border-color: #666666;
+        background: #f0f0f0;
+      }
+    }
+
+    .elder-btn {
+      width: 100%;
+      margin-top: 30px;
+      padding: 14px 0;
+      font-size: 1.4rem;
+      font-weight: bold;
+      color: #ffffff;
+      background: #333333;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      letter-spacing: 3px;
+      box-shadow: 0 2px 8px #bbbbbb;
+      transition: background 0.2s;
+
+      &:active {
+        background: #000000;
+      }
+    }
+  }
+
+  .elder-error {
+    color: #000000;
+    background: #eeeeee;
+    border: 1px solid #cccccc;
+    padding: 12px;
+    margin-top: 18px;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    text-align: center;
+  }
+}
