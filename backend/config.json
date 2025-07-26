@@ -1,0 +1,11 @@
+{
+    "postgres": {
+      "host": "localhost",
+      "port": 5432,
+      "database": "Dementia_predict",
+      "user": "postgres",
+      "password": "Mcu121",
+      "db_view": "CDR_&_MMSE_View",
+      "patient_table": "Patient"
+    }
+  }
