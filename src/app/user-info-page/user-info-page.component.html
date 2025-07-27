@@ -1,0 +1,18 @@
+@if (user; as u) {
+  <div class="user-info-container">
+    <h2>個人資料</h2>
+    <div class="user-info-list">
+      <p><strong>姓名：</strong>{{ u.name }}</p>
+      <p><strong>性別：</strong>{{ u.gender }}</p>
+      <p><strong>年齡：</strong>{{ getAge() }}</p>
+      <p><strong>CDR總分：</strong>{{ u.CDR_SUM }}</p>
+      <p><strong>MMSE分數：</strong>{{ u.MMSE_Score }}</p>
+      <p><strong>CDR-MEMORY：</strong>{{ u.MEMORY }}</p>
+      <p><strong>CDR加權：</strong>{{ u.CDRGLOB }}</p>
+    </div>
+    <button (click)="nextPage()" class="elder-btn">下一頁</button>
+  </div>
+} @else {
+  <p>尚未取得個人資料，請先登入。</p>
+}
+
