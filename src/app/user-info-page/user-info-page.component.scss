@@ -1,0 +1,33 @@
+.user-info-container {
+  max-width: 420px;
+  margin: 36px auto;
+  background: #f0f0f0;
+  border-radius: 24px;
+  box-shadow: 0 4px 24px #cccccc;
+  padding: 32px;
+
+  h2 {
+    font-size: 25px;
+  }
+
+  .user-info-list {
+    p {
+      font-size: 1.2rem;
+      margin: 14px 0;
+    }
+  }
+
+  .elder-btn {
+    width: 100%;
+    margin-top: 28px;
+    padding: 14px 0;
+    font-size: 1.3rem;
+    background: #333;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    letter-spacing: 2px;
+    cursor: pointer;
+  }
+}
+

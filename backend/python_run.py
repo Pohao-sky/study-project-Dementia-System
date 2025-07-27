@@ -12,7 +12,7 @@ CORS(app)
 
 # JWT 密鑰，正式建議用複雜字串並用環境變數讀取
 app.config['JWT_SECRET_KEY'] = 'wl6m06au/6tj06HIM'    #桃園銘傳HIM
-app.config['JWT_ACCESS_TOKEN_EXPIRES'] = datetime.timedelta(minutes=30)
+app.config['JWT_ACCESS_TOKEN_EXPIRES'] = datetime.timedelta(minutes=40)
 jwt = JWTManager(app)
 
 # 取得目前目錄與 config.json 的路徑

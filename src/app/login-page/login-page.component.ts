@@ -34,6 +34,7 @@ export class LoginPageComponent {
     this.api.login(username, password).subscribe({
       next: (res: any) => {
         localStorage.setItem('token', res.token);
+        localStorage.setItem('userInfo', JSON.stringify(res.user));
         this.api.userInfo = res.user;
         this.router.navigate(['/user-info']);
       },
