@@ -1,0 +1,28 @@
+:host{
+  margin-right: 1%;
+    button {
+      background: #b8b7b7;
+      color: #000000;
+      border: none;
+      border-radius: 20px;
+      font-size: 1.1rem;
+      padding: 8px 20px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.2s;
+
+      &:hover,
+      &:active,
+      &:force {
+        text-decoration: none;
+      }
+
+      &:hover {
+        background-color: #fff;
+      }
+
+      &.active {
+        background-color: #fff;
+      }
+  }
+}
