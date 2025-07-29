@@ -1,1 +1,22 @@
-/* You can add global styles to this file, and also import other style files */
+/* 1. 讓 app-root 或 body 佔滿視窗高度 */
+html, body, app-root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* 2. 讓 app-root 裡面用 flex 垂直排列 */
+app-root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh; /* 至少滿版高度 */
+}
+
+/* 3. 讓中間內容自動撐開，其餘 footer 黏底 */
+main, .main-content, router-outlet {
+  flex: 1 0 auto;
+}
+
+app-footer, .footer {
+  flex-shrink: 0;
+}
