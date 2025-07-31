@@ -36,7 +36,6 @@ export class UserInfoPageComponent implements OnInit {
   }
 
   nextPage() {
-    // TODO: 實作下一頁功能
-    alert('之後導向測驗頁');
+    this.router.navigate(['/voice-test']);
   }
 }

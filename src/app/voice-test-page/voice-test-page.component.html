@@ -1,0 +1,20 @@
+<h2>動物與蔬菜命名測驗</h2>
+<div class="hint-text">
+  請在一分鐘內，盡可能多說出你能想到的動物和蔬菜名稱，準備好後按下(開始錄音)。
+</div>
+<div class="voice-test-flex">
+  <app-verbal-fluency-test
+    [type]="'animals'"
+    [title]="'動物命名測驗'"
+    [disabled]="animalDone"
+    (testComplete)="onAnimalTestComplete($event)">
+  </app-verbal-fluency-test>
+
+  <app-verbal-fluency-test
+    [type]="'vegetables'"
+    [title]="'蔬菜命名測驗'"
+    [disabled]="vegetableDone"
+    (testComplete)="onVegetableTestComplete($event)">
+  </app-verbal-fluency-test>
+</div>
+<button class="elder-btn" [disabled]="!canNext()" (click)="nextPage()">下一頁</button>

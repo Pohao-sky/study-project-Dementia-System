@@ -1,0 +1,44 @@
+.voice-test-block {
+  max-width: 400px;
+  margin: 18px auto;
+  background: #f7f7f7;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px #bbb;
+  padding: 20px;
+  text-align: center;
+
+  h3 {
+    font-size: 1.4rem;
+    margin-bottom: 12px;
+    color: #222;
+  }
+
+  button {
+    font-size: 1.2rem;
+    padding: 10px 30px;
+    margin: 8px 0 18px 0;
+    border-radius: 40px;
+    background: #333;
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 1px 4px #aaa;
+    transition: background 0.2s;
+
+    &:active,
+    &:focus {
+      background: #555;
+      outline: none;
+    }
+  }
+
+  div {
+    font-size: 1.1rem;
+    color: #444;
+
+    p {
+      margin: 4px 0;
+      color: #111;
+    }
+  }
+}
