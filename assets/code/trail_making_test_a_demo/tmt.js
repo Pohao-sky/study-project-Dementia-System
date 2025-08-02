@@ -1,64 +1,3 @@
-<!DOCTYPE html>
-<html lang="zh-Hant">
-<head>
-  <meta charset="UTF-8">
-  <title>Trail Making Test A - Demo</title>
-  <style>
-    body { background: #f7f7f7; }
-    #tmt-canvas { background: #fff; border: 2px solid #333; display: block; margin: 40px auto; }
-    .tmt-restart { display: block; margin: 20px auto; font-size: 16px; }
-    #timer-area {
-      text-align: center; font-size: 22px; margin-top: 28px; margin-bottom: 5px;
-    }
-    #timer-area span { margin: 0 18px; font-weight: bold; color: #1e50a2; }
-    #popup {
-      position: fixed;
-      left: 50%; top: 32%;
-      transform: translate(-50%, -50%);
-      background: #fff9e7;
-      border: 2.5px solid #e9742b;
-      border-radius: 15px;
-      box-shadow: 0 6px 32px #e9742b44;
-      padding: 32px 32px 16px 32px;
-      font-size: 23px;
-      color: #c44707;
-      text-align: center;
-      z-index: 10000;
-      min-width: 270px;
-      display: none;
-      animation: popupIn .2s cubic-bezier(.55,1.6,.31,1);
-    }
-    @keyframes popupIn {
-      0% { transform: translate(-50%,-60%) scale(.8); opacity:.5; }
-      100% { transform: translate(-50%,-50%) scale(1); opacity:1; }
-    }
-    #popup-btn {
-      margin-top: 18px;
-      padding: 8px 28px;
-      border-radius: 7px;
-      border: none;
-      font-size: 17px;
-      background: #e9742b;
-      color: #fff;
-      cursor: pointer;
-      font-weight: bold;
-      box-shadow: 0 2px 8px #e9742b33;
-      transition: background .2s;
-    }
-    #popup-btn:hover { background: #c44707; }
-  </style>
-</head>
-<body>
-  <div id="timer-area">
-    <span id="tmt-timer">0.0</span>秒　
-    ｜錯誤次數：<span id="tmt-errors">0</span>
-  </div>
-  <canvas id="tmt-canvas" width="700" height="500"></canvas>
-  <div id="popup">
-    <div id="popup-msg"></div>
-    <button id="popup-btn" onclick="hidePopup()">確定</button>
-  </div>
-<script>
 const canvas = document.getElementById('tmt-canvas');
 const ctx = canvas.getContext('2d');
 const N = 24;
@@ -73,6 +12,7 @@ let timerInterval = null;
 let errorCount = 0;
 let started = false;
 
+// 定時器與錯誤顯示
 function updateTimerDisplay() {
   const el = document.getElementById('tmt-timer');
   if (startTime && !endTime) {
@@ -87,8 +27,9 @@ function updateErrorDisplay() {
   document.getElementById('tmt-errors').textContent = errorCount;
 }
 
+// 彈跳提示
 function showPopup(msg) {
-  document.getElementById('popup-msg').textContent = msg;
+  document.getElementById('popup-msg').innerHTML = msg.replace(/\n/g, '<br>');
   document.getElementById('popup').style.display = 'block';
   document.body.style.pointerEvents = 'none';
   document.getElementById('popup').style.pointerEvents = 'auto';
@@ -98,7 +39,7 @@ function hidePopup() {
   document.body.style.pointerEvents = 'auto';
 }
 
-// 隨機產生不重疊的座標
+// 產生隨機座標
 function randomNodes(n) {
   const arr = [];
   let count = 0;
@@ -187,9 +128,13 @@ function resetTest() {
   updateErrorDisplay();
 }
 
-// 初始化：顯示提示，待用戶點擊開始
 window.onload = function() {
-  showPopup('請點擊下方「開始連線測驗」按鈕！');
+  showPopup(`【遊戲規則】
+1. 請依序由小到大，點擊畫面上數字圓圈並拖曳連線。
+2. 只能依序連線，錯誤連線會有提醒，並記錄錯誤次數。
+3. 點擊「開始連線測驗」後開始計時，完成全部連線即結束並顯示用時與錯誤數。
+
+請點擊下方「開始連線測驗」按鈕開始遊戲！`);
 };
 
 // 新增開始連線測驗按鈕
@@ -202,7 +147,6 @@ btn.onclick = () => {
   hidePopup();
   btn.style.display = 'none';
   started = true;
-  // 這裡就開始計時！
   startTime = Date.now();
   timerInterval = setInterval(updateTimerDisplay, 100);
   updateTimerDisplay();
@@ -222,7 +166,6 @@ canvas.addEventListener('mousedown', (e)=>{
   if(lines.length===0 && node.num===1) {
     dragging = true;
     lastNode = node;
-    // 移除 startTime 這一段，已改為按下開始時啟動
   }
   else if(lines.length>0 && node.num === lines.length+1) {
     dragging = true;
@@ -268,6 +211,3 @@ canvas.addEventListener('mouseup', (e)=>{
   currentPath = [];
   drawAll();
 });
-</script>
-</body>
-</html>

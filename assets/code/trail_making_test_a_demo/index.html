@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>Trail Making Test A - Demo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="tmt.css">
+</head>
+<body>
+  <div id="timer-area">
+    <span id="tmt-timer">0.0</span>秒　
+    ｜錯誤次數：<span id="tmt-errors">0</span>
+  </div>
+  <canvas id="tmt-canvas" width="700" height="500"></canvas>
+  <div id="popup">
+    <div id="popup-msg"></div>
+    <button id="popup-btn" onclick="hidePopup()">確定</button>
+  </div>
+  <script src="tmt.js"></script>
+</body>
+</html>
