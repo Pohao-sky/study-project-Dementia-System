@@ -1,39 +1,81 @@
 import os
 import json
-from flask import Flask, request, jsonify
+import datetime
+from io import BytesIO
+
+from flask import Flask, request, jsonify, abort
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager, create_access_token
-import db        # 假設 db.py 中有 read_from_db(query) 函式
+from flask_restx import Api, Resource
+from flask_sqlalchemy import SQLAlchemy
+from dotenv import load_dotenv
+from werkzeug.exceptions import HTTPException
+
 import model     # 假設 model.py 中有 predict(input_data) 函式
-import datetime
 from faster_whisper import WhisperModel
 import torch
 import jieba
-from io import BytesIO
+
+load_dotenv()
 
 app = Flask(__name__)
-CORS(app)
 
-# JWT 密鑰，正式建議用複雜字串並用環境變數讀取
-app.config['JWT_SECRET_KEY'] = 'wl6m06au/6tj06HIM'    #桃園銘傳HIM
-app.config['JWT_ACCESS_TOKEN_EXPIRES'] = datetime.timedelta(minutes=40)
-jwt = JWTManager(app)
+# CORS 設定只允許特定來源與方法
+CORS(app, resources={r"/*": {"origins": ["http://localhost:4200"], "methods": ["GET", "POST"]}})
 
 # 取得目前目錄與 config.json 的路徑
 current_dir = os.path.dirname(os.path.abspath(__file__))
 config_path = os.path.join(current_dir, 'config.json')
-audio_chunks = {}
 
 # 讀取設定檔
 with open(config_path, 'r') as file:
     config = json.load(file)
 
+# 讀取 JWT 密鑰
+app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY')
+app.config['JWT_ACCESS_TOKEN_EXPIRES'] = datetime.timedelta(minutes=40)
+
+# SQLAlchemy 設定
+db_config = config['postgres']
+app.config['SQLALCHEMY_DATABASE_URI'] = (
+    f"postgresql://{db_config['user']}:{db_config['password']}@{db_config['host']}:{db_config['port']}/{db_config['database']}"
+)
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db = SQLAlchemy(app)
+jwt = JWTManager(app)
+
+api = Api(app, version='1.0', title='Dementia API', description='API documentation', doc='/docs')
+
 # 從設定檔取得資料庫資料表名稱
-db_view = config['postgres'].get('db_view')
-patient_table = config['postgres'].get('patient_table')
+db_view = db_config.get('db_view')
+patient_table = db_config.get('patient_table')
+
+# SQLAlchemy Models
+class Patient(db.Model):
+    __tablename__ = patient_table
+    Patient_ID = db.Column('Patient_ID', db.String, primary_key=True)
+    Name = db.Column('Name', db.String)
+    Gender = db.Column('Gender', db.String)
+    Birthyr = db.Column('Birthyr', db.Integer)
+    password = db.Column('password', db.String)
+
+
+class ScoreView(db.Model):
+    __tablename__ = db_view
+    __table_args__ = {'extend_existing': True}
+    Patient_ID = db.Column('Patient_ID', db.String, primary_key=True)
+    CDR_SUM = db.Column('CDR_SUM', db.Float)
+    MMSE_Score = db.Column('MMSE_Score', db.Float)
+    MEMORY = db.Column('MEMORY', db.Float)
+    CDRGLOB = db.Column('CDRGLOB', db.Float)
 
 # === Faster Whisper & 關鍵字初始化 ===
 device = "cuda" if torch.cuda.is_available() else "cpu"
+if torch.cuda.is_available():
+    print(f"語音模型推論裝置：GPU (CUDA) [{torch.cuda.get_device_name()}]")
+else:
+    print("語音模型推論裝置：CPU")
+
 print(f"使用裝置：{device}")
 speech_model = WhisperModel(
     model_size_or_path="medium",
@@ -94,97 +136,86 @@ for w in vegetables | animals:
 
 audio_chunks = {}   # 用來暫存錄音片段
 
-@app.route('/login', methods=['POST'])
-def login():
-    data = request.get_json()
-    username = data.get('username')
-    password = data.get('password')
+@api.route('/login')
+class Login(Resource):
+    def post(self):
+        data = request.get_json()
+        username = data.get('username')
+        password = data.get('password')
 
-    # 資料庫查詢 user 表，驗證帳號密碼
-    user_query = f'''
-        SELECT "Patient_ID", "Name", "Gender", "Birthyr", "password"
-        FROM "{patient_table}"
-        WHERE "Patient_ID" = %s
-    '''
-    user_result = db.read_from_db(user_query, (username,))  # 建議改成參數化查詢
-    if not user_result:
-        return jsonify({'error': '帳號或密碼錯誤'}), 401
+        user = Patient.query.filter_by(Patient_ID=username).first()
+        if not user or user.password != password:
+            abort(401, description='帳號或密碼錯誤')
 
-    user = user_result[0]
-    if password != user[4]:
-        return jsonify({'error': '帳號或密碼錯誤'}), 401
+        score = ScoreView.query.filter_by(Patient_ID=username).first()
+        if not score:
+            scores = {'CDR_SUM': None, 'MMSE_Score': None, 'MEMORY': None, 'CDRGLOB': None}
+        else:
+            scores = {
+                'CDR_SUM': score.CDR_SUM,
+                'MMSE_Score': score.MMSE_Score,
+                'MEMORY': score.MEMORY,
+                'CDRGLOB': score.CDRGLOB
+            }
 
-    # 再查分數表
-    score_query = f'''
-        SELECT "CDR_SUM", "MMSE_Score", "MEMORY", "CDRGLOB"
-        FROM "{db_view}"
-        WHERE "Patient_ID" = %s
-    '''
-    score_result = db.read_from_db(score_query, (username,))
-    if not score_result:
-        # 若查無分數資料，可決定直接給空值或報錯
-        scores = {'CDR_SUM': None, 'MMSE_Score': None, 'MEMORY': None, 'CDRGLOB': None}
-    else:
-        scores = {
-            'CDR_SUM': score_result[0][0],
-            'MMSE_Score': score_result[0][1],
-            'MEMORY': score_result[0][2],
-            'CDRGLOB': score_result[0][3]
+        user_data = {
+            'name': user.Name,
+            'gender': user.Gender,
+            'birth_year': user.Birthyr,
+            **scores
         }
 
-    # 準備 user 資料
-    user_data = {
-        'name': user[1],
-        'gender': user[2],
-        'birth_year': user[3],
-        **scores
-    }
+        access_token = create_access_token(identity=username)
+        return {'token': access_token, 'user': user_data}
 
-    # 建立 JWT
-    access_token = create_access_token(identity=username)
 
-    return jsonify({
-        'token': access_token,
-        'user': user_data
-    })
+@api.route('/speech_upload_chunk')
+class SpeechUploadChunk(Resource):
+    def post(self):
+        recording_id = request.form['recording_id']
+        chunk_index = int(request.form['chunk_index'])
+        audio = request.files['audio_chunk']
+        if recording_id not in audio_chunks:
+            audio_chunks[recording_id] = {}
+        audio_chunks[recording_id][chunk_index] = audio.read()
+        return {'ok': True}
 
-@app.route('/speech_upload_chunk', methods=['POST'])
-def speech_upload_chunk():
-    recording_id = request.form['recording_id']
-    chunk_index = int(request.form['chunk_index'])
-    audio = request.files['audio_chunk']
-    # 儲存到 dict，確保順序
-    if recording_id not in audio_chunks:
-        audio_chunks[recording_id] = {}
-    audio_chunks[recording_id][chunk_index] = audio.read()
-    return jsonify({'ok': True})
 
-@app.route('/speech_test_finalize', methods=['POST'])
-def speech_test_finalize():
-    recording_id = request.form['recording_id']
-    test_type = request.form.get('type')
-    if test_type not in ('vegetables', 'animals') or recording_id not in audio_chunks:
-        return jsonify({'error': '參數錯誤'}), 400
-    # 1. 合併所有片段
-    chunks_dict = audio_chunks.pop(recording_id)
-    # 依照 index 順序合併
-    audio_bytes = b''.join([chunks_dict[i] for i in sorted(chunks_dict.keys())])
-    audio_buffer = BytesIO(audio_bytes)
+@api.route('/speech_test_finalize')
+class SpeechTestFinalize(Resource):
+    def post(self):
+        recording_id = request.form['recording_id']
+        test_type = request.form.get('type')
+        if test_type not in ('vegetables', 'animals') or recording_id not in audio_chunks:
+            abort(400, description='參數錯誤')
+        chunks_dict = audio_chunks.pop(recording_id)
+        audio_bytes = b''.join([chunks_dict[i] for i in sorted(chunks_dict.keys())])
+        audio_buffer = BytesIO(audio_bytes)
 
-    # 2. Whisper 分析
-    segments, info = speech_model.transcribe(
-        audio_buffer,
-        beam_size=5,
-        language="zh",
-        vad_filter=True,
-        vad_parameters={"min_silence_duration_ms": 1000}
-    )
-    text = "".join([seg.text for seg in segments])
-    words = set(jieba.lcut(text))
-    keywords = vegetables if test_type == 'vegetables' else animals
-    detail = {w: 1 for w in words if w in keywords}
-    total = len(detail)
-    return jsonify({'total': total, 'detail': detail})
+        segments, info = speech_model.transcribe(
+            audio_buffer,
+            beam_size=5,
+            language="zh",
+            vad_filter=True,
+            vad_parameters={"min_silence_duration_ms": 1000}
+        )
+        text = "".join([seg.text for seg in segments])
+        words = set(jieba.lcut(text))
+        keywords = vegetables if test_type == 'vegetables' else animals
+        detail = {w: 1 for w in words if w in keywords}
+        total = len(detail)
+        return {'total': total, 'detail': detail}
+
+
+@app.errorhandler(HTTPException)
+def handle_http_exception(e):
+    return jsonify({'error': e.description}), e.code
+
+
+@app.errorhandler(Exception)
+def handle_exception(e):
+    return jsonify({'error': 'Internal Server Error'}), 500
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=3000, debug=True)
