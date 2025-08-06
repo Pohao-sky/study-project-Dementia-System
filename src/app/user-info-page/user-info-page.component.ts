@@ -13,6 +13,7 @@ import { User } from '../models/user';
   styleUrls: ['./user-info-page.component.scss']
 })
 export class UserInfoPageComponent implements OnInit {
+  ///若沒登入就近此頁就跳回登入頁
   user: User | null = null;
 
   constructor(private api: ApiService, private router: Router) {}
@@ -29,6 +30,7 @@ export class UserInfoPageComponent implements OnInit {
     // 3. 沒資料就跳回登入頁
     if (!this.user) this.router.navigate(['/login']);
   }
+  ///
 
   getAge(): number | null {
     if (!this.user) return null;

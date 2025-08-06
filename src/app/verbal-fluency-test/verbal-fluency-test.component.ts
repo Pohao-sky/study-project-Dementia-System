@@ -1,5 +1,8 @@
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { User } from '../models/user';
+import { ApiService } from '../service/api.service';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-verbal-fluency-test',
@@ -9,6 +12,25 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
   styleUrl: './verbal-fluency-test.component.scss'
 })
 export class VerbalFluencyTestComponent {
+ ///若沒登入就近此頁就跳回登入頁
+  user: User | null = null;
+
+  constructor(private api: ApiService, private router: Router) {}
+
+  ngOnInit() {
+    // 1. 先從 service 拿
+    if (this.api.userInfo) {
+      this.user = this.api.userInfo;
+    } else {
+      // 2. 再從 localStorage 拿
+      const userStr = localStorage.getItem('userInfo');
+      if (userStr) this.user = JSON.parse(userStr);
+    }
+    // 3. 沒資料就跳回登入頁
+    if (!this.user) this.router.navigate(['/login']);
+  }
+///
+
 [x: string]: any;
   @Input() type: 'animals' | 'vegetables' = 'animals';  // 測驗種類
   @Input() title: string = '語詞流暢性測驗';              // 顯示標題
