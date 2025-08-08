@@ -1,0 +1,42 @@
+body { background: #f7f7f7; }
+#tmt-canvas { background: #fff; border: 2px solid #333; display: block; margin: 40px auto; }
+.tmt-restart { display: block; margin: 20px auto; font-size: 16px; }
+#timer-area {
+  text-align: center; font-size: 22px; margin-top: 28px; margin-bottom: 5px;
+}
+#timer-area span { margin: 0 18px; font-weight: bold; color: #1e50a2; }
+#popup {
+  position: fixed;
+  left: 50%; top: 32%;
+  transform: translate(-50%, -50%);
+  background: #fff9e7;
+  border: 2.5px solid #e9742b;
+  border-radius: 15px;
+  box-shadow: 0 6px 32px #e9742b44;
+  padding: 32px 32px 16px 32px;
+  font-size: 23px;
+  color: #c44707;
+  text-align: center;
+  z-index: 10000;
+  min-width: 270px;
+  display: none;
+  animation: popupIn .2s cubic-bezier(.55,1.6,.31,1);
+}
+@keyframes popupIn {
+  0% { transform: translate(-50%,-60%) scale(.8); opacity:.5; }
+  100% { transform: translate(-50%,-50%) scale(1); opacity:1; }
+}
+#popup-btn {
+  margin-top: 18px;
+  padding: 8px 28px;
+  border-radius: 7px;
+  border: none;
+  font-size: 17px;
+  background: #e9742b;
+  color: #fff;
+  cursor: pointer;
+  font-weight: bold;
+  box-shadow: 0 2px 8px #e9742b33;
+  transition: background .2s;
+}
+#popup-btn:hover { background: #c44707; }
