@@ -1,16 +1,28 @@
 <div class="voice-test-block">
   <h3>{{ title }}</h3>
-  <button (click)="startTest()" [disabled]="recording || disabled">開始錄音</button>
 
-  @if (recording) {
-    <div>倒數：{{ timer }} 秒</div>
-    <div>錄音中...</div>
+  <!-- 操作按鈕 -->
+  @if (!isRecording) {
+    <button (click)="startTest()" [disabled]="disabled">開始錄音</button>
   }
 
-  @if (done && result) {
-    <div>
-      <p>總分：{{ result.total }} 種</p>
-      <p>您說出的詞彙：{{ result.detail ? getKeys(result.detail).join('、') : '' }}</p>
+  <!-- 錄音中提示與倒數 -->
+  @if (isRecording) {
+    <div class="recording-status">
+      <div>倒數：{{ countdownSeconds }} 秒</div>
+      <div>錄音中...</div>
+    </div>
+  }
+
+  <!-- 結果區塊 -->
+  @if (isDone && analyzeResult) {
+    <div class="result-block">
+      <p>總分：{{ analyzeResult.total }} 種</p>
+      <p>
+        您說出的詞彙：
+        {{ analyzeResult.detail ? getKeys(analyzeResult.detail).join('、') : '' }}
+      </p>
     </div>
   }
 </div>
+
