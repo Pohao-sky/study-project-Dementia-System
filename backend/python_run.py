@@ -1,8 +1,13 @@
 import os
 import json
 import datetime
+import threading
+import subprocess
 from io import BytesIO
+from collections import defaultdict
+from typing import Dict, List, Tuple, Any, Set, Optional
 
+import numpy as np
 from flask import Flask, request, jsonify, abort
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager, create_access_token
@@ -11,79 +16,77 @@ from flask_sqlalchemy import SQLAlchemy
 from dotenv import load_dotenv
 from werkzeug.exceptions import HTTPException
 
-import model     # 假設 model.py 中有 predict(input_data) 函式
+import model  # 假設 model.py 中有 predict(input_data) 函式
 from faster_whisper import WhisperModel
 import torch
 import jieba
+import binascii
 
+# =========================
+# 環境與 Flask 初始化
+# =========================
 load_dotenv()
 
 app = Flask(__name__)
-
-# CORS 設定只允許特定來源與方法
 CORS(app, resources={r"/*": {"origins": ["http://localhost:4200"], "methods": ["GET", "POST"]}})
 
-# 取得目前目錄與 config.json 的路徑
 current_dir = os.path.dirname(os.path.abspath(__file__))
-config_path = os.path.join(current_dir, 'config.json')
-
-# 讀取設定檔
-with open(config_path, 'r') as file:
+config_path = os.path.join(current_dir, "config.json")
+with open(config_path, "r", encoding="utf-8") as file:
     config = json.load(file)
 
-# 讀取 JWT 密鑰
-app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY')
-app.config['JWT_ACCESS_TOKEN_EXPIRES'] = datetime.timedelta(minutes=40)
+app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY")
+app.config["JWT_ACCESS_TOKEN_EXPIRES"] = datetime.timedelta(minutes=40)
 
-# SQLAlchemy 設定
-db_config = config['postgres']
-app.config['SQLALCHEMY_DATABASE_URI'] = (
-    f"postgresql://{db_config['user']}:{db_config['password']}@{db_config['host']}:{db_config['port']}/{db_config['database']}"
+postgres = config["postgres"]
+app.config["SQLALCHEMY_DATABASE_URI"] = (
+    f"postgresql://{postgres['user']}:{postgres['password']}@{postgres['host']}:{postgres['port']}/{postgres['database']}"
 )
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
 db = SQLAlchemy(app)
 jwt = JWTManager(app)
+api = Api(app, version="1.0", title="Dementia API", description="API documentation", doc="/docs")
 
-api = Api(app, version='1.0', title='Dementia API', description='API documentation', doc='/docs')
+# 表名
+db_view = postgres.get("db_view")
+patient_table = postgres.get("patient_table")
 
-# 從設定檔取得資料庫資料表名稱
-db_view = db_config.get('db_view')
-patient_table = db_config.get('patient_table')
-
-# SQLAlchemy Models
+# =========================
+# 資料庫 Models
+# =========================
 class Patient(db.Model):
     __tablename__ = patient_table
-    Patient_ID = db.Column('Patient_ID', db.String, primary_key=True)
-    Name = db.Column('Name', db.String)
-    Gender = db.Column('Gender', db.String)
-    Birthyr = db.Column('Birthyr', db.Integer)
-    password = db.Column('password', db.String)
+    Patient_ID = db.Column("Patient_ID", db.String, primary_key=True)
+    Name = db.Column("Name", db.String)
+    Gender = db.Column("Gender", db.String)
+    Birthyr = db.Column("Birthyr", db.Integer)
+    password = db.Column("password", db.String)
 
 
 class ScoreView(db.Model):
     __tablename__ = db_view
-    __table_args__ = {'extend_existing': True}
-    Patient_ID = db.Column('Patient_ID', db.String, primary_key=True)
-    CDR_SUM = db.Column('CDR_SUM', db.Float)
-    MMSE_Score = db.Column('MMSE_Score', db.Float)
-    MEMORY = db.Column('MEMORY', db.Float)
-    CDRGLOB = db.Column('CDRGLOB', db.Float)
+    __table_args__ = {"extend_existing": True}
+    Patient_ID = db.Column("Patient_ID", db.String, primary_key=True)
+    CDR_SUM = db.Column("CDR_SUM", db.Float)
+    MMSE_Score = db.Column("MMSE_Score", db.Float)
+    MEMORY = db.Column("MEMORY", db.Float)
+    CDRGLOB = db.Column("CDRGLOB", db.Float)
 
-# === Faster Whisper & 關鍵字初始化 ===
+# =========================
+# Faster-Whisper 初始化 & 詞庫
+# =========================
+
 device = "cuda" if torch.cuda.is_available() else "cpu"
-if torch.cuda.is_available():
-    print(f"語音模型推論裝置：GPU (CUDA) [{torch.cuda.get_device_name()}]")
-else:
-    print("語音模型推論裝置：CPU")
+print(f"使用裝置：{'GPU ' + torch.cuda.get_device_name() if torch.cuda.is_available() else 'CPU'}")
 
-print(f"使用裝置：{device}")
 speech_model = WhisperModel(
     model_size_or_path="medium",
     device=device,
-    compute_type="float16"
+    compute_type="float16",  # 在 4060 上用 FP16
 )
 
-vegetables = {
+vegetables: Set[str] =  {
     "高麗菜", "大白菜", "地瓜", "洋蔥", "玉米", "青花菜", "苦瓜", "南瓜", "馬鈴薯", "茄子", "番薯", "山藥",
     "菠菜", "白蘿蔔", "胡蘿蔔", "大蒜", "青椒", "甜椒", "辣椒","魔鬼椒", "香菇", "芋頭", "杏鮑菇", "花椰菜","黑豆",
     "空心菜", "地瓜葉", "絲瓜", "蓮藕", "金針菇", "洋菇", "黑木耳", "四季豆", "蔥","青蔥", "秋葵", "朝天椒",
@@ -96,7 +99,7 @@ vegetables = {
     "金針花", "蠶豆", "蕨菜", "菊芋", "蒜苗", "麻竹筍", "綠竹筍", "孟宗竹筍", "桂竹筍", "箭竹筍", "松露",
 }
 
-animals = {
+animals: Set[str] = {
     # 常見哺乳類
     "貓", "鼠","老鼠", "大象", "獅子", "虎","老虎", "台灣獼猴","猴","猴子", "馬", "牛", "羊","犀牛","無尾熊","豹","獵豹","花豹","黑豹",
     "豬", "兔子", "兔", "狐狸", "狼", "駱駝", "袋鼠", "熊", "熊貓", "松鼠", "鼴鼠", "天竺鼠", "荷蘭豬","鬥牛",
@@ -130,92 +133,263 @@ animals = {
     "鸚鵡螺", "小熊貓", "蝸牛", "蛞蝓", "食蟻獸", "福壽螺",
 }
 
-# jieba 詞庫加入所有關鍵字
-for w in vegetables | animals:
-    jieba.add_word(w)
+for vocab in vegetables | animals:
+    jieba.add_word(vocab)
 
-audio_chunks = {}   # 用來暫存錄音片段
+# =========================
+# 逐 chunk 推論：修正 InvalidDataError
+# =========================
+# 問題說明：MediaRecorder 產生的 webm/opus 分段，後續片段常缺乏容器頭，
+# PyAV(av.open) 會丟 InvalidDataError。解法：先用 FFmpeg 把分段「解碼成 PCM」再丟入模型。
+# （WhisperModel 支援 numpy float32 + sampling_rate）
 
-@api.route('/login')
+FFMPEG_PATH = os.getenv("FFMPEG_PATH", "ffmpeg")  # 可用環境變數指定 ffmpeg 路徑（Windows 友善）
+
+audio_chunks: Dict[str, Dict[int, bytes]] = {}
+partial_text_store: Dict[str, Dict[int, str]] = defaultdict(dict)
+transcribe_lock = threading.Lock()
+
+
+class ChunkTranscribeOptions:
+    def __init__(self, language: str = "zh", beam_size: int = 1, use_vad: bool = False):
+        self.language = language
+        self.beam_size = beam_size
+        self.use_vad = use_vad
+
+
+def _decode_with_pyav_or_raise(audio_bytes: bytes) -> Optional[bytes]:
+    """若 bytes 可被 PyAV 直接打開，回傳原 bytes；否則回 None。單一職責，最小作用域。"""
+    try:
+        # 只測試能否被 av.open 解；若可解，就直接回傳 bytes 給 whisper 使用。
+        import av  # 延遲載入，避免環境沒有 PyAV 時影響啟動
+        with av.open(BytesIO(audio_bytes), mode="r", metadata_errors="ignore"):
+            return audio_bytes
+    except Exception:
+        return None
+
+
+def _decode_to_pcm_f32_bytes(audio_bytes: bytes, target_hz: int = 16000, channels: int = 1) -> bytes:
+    """用 FFmpeg 將任意容器/編碼解成 float32 PCM，回傳裸資料（f32le）。
+    - 優點：不依賴分段是否自含 header；FFmpeg 解析力較強。
+    - 失敗時丟出例外，呼叫端捕捉。
+    """
+    cmd = [
+        FFMPEG_PATH,
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-fflags",
+        "+genpts+igndts",
+        "-i",
+        "pipe:0",
+        "-ac",
+        str(channels),
+        "-ar",
+        str(target_hz),
+        "-f",
+        "f32le",
+        "pipe:1",
+    ]
+    proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    out, err = proc.communicate(input=audio_bytes)
+    if proc.returncode != 0 or not out:
+        raise RuntimeError(f"FFmpeg decode failed: code={proc.returncode}, err={err.decode('utf-8', 'ignore')}")
+    return out
+
+
+def _pcm_bytes_to_float32_array(pcm_f32_bytes: bytes) -> np.ndarray:
+    arr = np.frombuffer(pcm_f32_bytes, dtype=np.float32)
+    return arr  # 單聲道 f32le
+
+
+def transcribe_chunk_bytes(audio_bytes: bytes, options: ChunkTranscribeOptions) -> str:
+    # Early return：太短的 chunk 直接略過
+    if len(audio_bytes) < 1024:
+        return ""
+
+    # 路徑 A：可被 PyAV 直接解的情況，維持原先走法（較快）
+    direct = _decode_with_pyav_or_raise(audio_bytes)
+    if direct is not None:
+        with transcribe_lock:
+            segments, _ = speech_model.transcribe(
+                BytesIO(direct),
+                language=options.language,
+                beam_size=options.beam_size,
+                vad_filter=options.use_vad,
+                vad_parameters={"min_silence_duration_ms": 1000},
+                word_timestamps=False,
+            )
+        return "".join(seg.text for seg in segments)
+
+    # 路徑 B：PyAV 失敗 → FFmpeg 解碼為 PCM → numpy → 直接給 Whisper（最穩）
+    pcm_bytes = _decode_to_pcm_f32_bytes(audio_bytes, target_hz=16000, channels=1)
+    samples = _pcm_bytes_to_float32_array(pcm_bytes)
+
+    with transcribe_lock:
+        segments, _ = speech_model.transcribe(
+            samples,
+            sampling_rate=16000,
+            language=options.language,
+            beam_size=options.beam_size,
+            vad_filter=options.use_vad,
+            vad_parameters={"min_silence_duration_ms": 1000},
+            word_timestamps=False,
+        )
+    return "".join(seg.text for seg in segments)
+
+
+# =========================
+# 認證：登入 API（保持原行為）
+# =========================
+@api.route("/login")
 class Login(Resource):
     def post(self):
         data = request.get_json()
-        username = data.get('username')
-        password = data.get('password')
+        username = data.get("username")
+        password = data.get("password")
 
         user = Patient.query.filter_by(Patient_ID=username).first()
         if not user or user.password != password:
-            abort(401, description='帳號或密碼錯誤')
+            abort(401, description="帳號或密碼錯誤")
 
         score = ScoreView.query.filter_by(Patient_ID=username).first()
         if not score:
-            scores = {'CDR_SUM': None, 'MMSE_Score': None, 'MEMORY': None, 'CDRGLOB': None}
+            scores = {"CDR_SUM": None, "MMSE_Score": None, "MEMORY": None, "CDRGLOB": None}
         else:
             scores = {
-                'CDR_SUM': score.CDR_SUM,
-                'MMSE_Score': score.MMSE_Score,
-                'MEMORY': score.MEMORY,
-                'CDRGLOB': score.CDRGLOB
+                "CDR_SUM": score.CDR_SUM,
+                "MMSE_Score": score.MMSE_Score,
+                "MEMORY": score.MEMORY,
+                "CDRGLOB": score.CDRGLOB,
             }
 
         user_data = {
-            'name': user.Name,
-            'gender': user.Gender,
-            'birth_year': user.Birthyr,
-            **scores
+            "name": user.Name,
+            "gender": user.Gender,
+            "birth_year": user.Birthyr,
+            **scores,
         }
 
         access_token = create_access_token(identity=username)
-        return {'token': access_token, 'user': user_data}
+        return {"token": access_token, "user": user_data}
 
 
+# =========================
+# 上傳分段：立即嘗試轉錄並暫存文字（穩定版）
+# =========================
+# 簡單十六進位預覽，協助診斷是不是有效容器起始（如 EBML 1A45DFA3 或 OggS）
+def hexdump_prefix(b: bytes, n: int = 8) -> str:
+    return binascii.hexlify(b[:n]).decode('ascii')
+
+# ---- 在 /speech_upload_chunk 內部調整 ----
 @api.route('/speech_upload_chunk')
 class SpeechUploadChunk(Resource):
     def post(self):
         recording_id = request.form['recording_id']
         chunk_index = int(request.form['chunk_index'])
-        audio = request.files['audio_chunk']
+        audio_file = request.files['audio_chunk']
+
+        audio_bytes = audio_file.read()
+        if not audio_bytes:
+            return {'ok': False, 'skipped': True, 'reason': 'empty_chunk'}, 200
+
+        # 緩存原始 bytes（finalize 可備援用）
         if recording_id not in audio_chunks:
             audio_chunks[recording_id] = {}
-        audio_chunks[recording_id][chunk_index] = audio.read()
-        return {'ok': True}
+        audio_chunks[recording_id][chunk_index] = audio_bytes
+
+        # 診斷資訊
+        app.logger.info(
+            f"chunk rid={recording_id} idx={chunk_index} size={len(audio_bytes)} "
+            f"mimetype={audio_file.mimetype} head={hexdump_prefix(audio_bytes)}"
+        )
+
+        # 每個 chunk 都嘗試轉錄；失敗不炸 server，存空字串即可
+        try:
+            options = ChunkTranscribeOptions(language='zh', beam_size=1, use_vad=False)
+            chunk_text = transcribe_chunk_bytes(audio_bytes, options)  # 內含 transcribe_lock 與 ffmpeg fallback
+            if recording_id not in partial_text_store:
+                partial_text_store[recording_id] = {}
+            partial_text_store[recording_id][chunk_index] = chunk_text
+            return {'ok': True, 'text_len': len(chunk_text)}
+        except Exception:
+            app.logger.exception(
+                f"Chunk transcribe failed: recording_id={recording_id}, chunk_index={chunk_index}"
+            )
+            if recording_id not in partial_text_store:
+                partial_text_store[recording_id] = {}
+            partial_text_store[recording_id][chunk_index] = ''  # 降級：保留索引，避免 finalize KeyError
+            return {'ok': False, 'skipped': True, 'reason': 'decode_failed'}, 200
 
 
-@api.route('/speech_test_finalize')
+# =========================
+# 結束彙整：把所有 chunk 的文字串起來，做關鍵字統計
+# =========================
+@api.route("/speech_test_finalize")
 class SpeechTestFinalize(Resource):
     def post(self):
-        recording_id = request.form['recording_id']
-        test_type = request.form.get('type')
-        if test_type not in ('vegetables', 'animals') or recording_id not in audio_chunks:
-            abort(400, description='參數錯誤')
-        chunks_dict = audio_chunks.pop(recording_id)
-        audio_bytes = b''.join([chunks_dict[i] for i in sorted(chunks_dict.keys())])
-        audio_buffer = BytesIO(audio_bytes)
+        recording_id = request.form["recording_id"]
+        test_type = request.form.get("type")
 
-        segments, info = speech_model.transcribe(
-            audio_buffer,
-            beam_size=5,
-            language="zh",
-            vad_filter=True,
-            vad_parameters={"min_silence_duration_ms": 1000}
-        )
-        text = "".join([seg.text for seg in segments])
-        words = set(jieba.lcut(text))
-        keywords = vegetables if test_type == 'vegetables' else animals
-        detail = {w: 1 for w in words if w in keywords}
+        if test_type not in ("vegetables", "animals"):
+            abort(400, description="參數錯誤：未知的測驗類型")
+
+        # 既有的「已轉錄文字」與「原始 bytes 」
+        texts_map = partial_text_store.get(recording_id, {})          # {index: text or ''}
+        chunks_map = audio_chunks.get(recording_id, {})               # {index: bytes}
+
+        # 兩者都沒有就早退
+        if not texts_map and not chunks_map:
+            return {"total": 0, "detail": {}, "chunks": 0}
+
+        # 以索引聯集為準，確保每個片段都被處理
+        ordered_indices = sorted(set(texts_map.keys()) | set(chunks_map.keys()))
+
+        full_text_parts = []
+        transcribe_options = ChunkTranscribeOptions(language="zh", beam_size=1, use_vad=False)
+
+        for idx in ordered_indices:
+            # 先用已存在的文字；若是空字串，再用 bytes 轉錄一次
+            chunk_text = texts_map.get(idx, "")
+            if not chunk_text:
+                audio_bytes = chunks_map.get(idx)
+                if audio_bytes:
+                    try:
+                        chunk_text = transcribe_chunk_bytes(audio_bytes, transcribe_options)
+                    except Exception as ex:
+                        app.logger.exception(
+                            f"Finalize transcribe failed: recording_id={recording_id}, chunk_index={idx}"
+                        )
+                        chunk_text = ""  # 失敗就跳過該片段
+            full_text_parts.append(chunk_text)
+
+        full_text = "".join(full_text_parts)
+
+        keywords = vegetables if test_type == "vegetables" else animals
+        word_set = set(jieba.lcut(full_text))
+        detail = {w: 1 for w in word_set if w in keywords}
         total = len(detail)
-        return {'total': total, 'detail': detail}
+
+        # 清理暫存
+        partial_text_store.pop(recording_id, None)
+        audio_chunks.pop(recording_id, None)
+
+        return {"total": total, "detail": detail, "chunks": len(ordered_indices)}
 
 
+# =========================
+# 錯誤處理
+# =========================
 @app.errorhandler(HTTPException)
 def handle_http_exception(e):
-    return jsonify({'error': e.description}), e.code
+    return jsonify({"error": e.description}), e.code
 
 
 @app.errorhandler(Exception)
 def handle_exception(e):
-    return jsonify({'error': 'Internal Server Error'}), 500
+    app.logger.exception("Unhandled exception")
+    return jsonify({"error": "Internal Server Error"}), 500
 
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=3000, debug=True)
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=3000, debug=True)
