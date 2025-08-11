@@ -1,8 +1,8 @@
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, Output, NgZone, ChangeDetectorRef } from '@angular/core';
 import { User } from '../models/user';
-import { ApiService } from '../service/api.service';
 import { Router } from '@angular/router';
+import { LoginService } from '../service/login.service';
 
 @Component({
   selector: 'app-verbal-fluency-test',
@@ -15,7 +15,7 @@ export class VerbalFluencyTestComponent {
   user: User | null = null;
 
   constructor(
-    private api: ApiService,
+    private api: LoginService,
     private router: Router,
     private zone: NgZone,
     private cdr: ChangeDetectorRef

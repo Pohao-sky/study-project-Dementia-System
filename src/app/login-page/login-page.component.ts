@@ -1,8 +1,8 @@
 import { Component } from '@angular/core';
 import { Router } from '@angular/router';
-import { ApiService } from '../service/api.service';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { LoginService } from '../service/login.service';
 
 @Component({
   selector: 'app-login-page',
@@ -17,7 +17,7 @@ export class LoginPageComponent {
 
   constructor(
     private fb: FormBuilder,
-    private api: ApiService,
+    private api: LoginService,
     private router: Router
   ) {
     this.loginForm = this.fb.group({

@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import { Router } from '@angular/router';
-import { ApiService } from '../service/api.service';
+import { LoginService } from '../service/login.service';
+
 
 @Component({
   selector: 'app-nav-bar',
@@ -9,7 +10,7 @@ import { ApiService } from '../service/api.service';
   styleUrl: './nav-bar.component.scss'
 })
 export class NavBarComponent {
-  constructor(private router: Router, private api: ApiService) {}
+  constructor(private router: Router, private api: LoginService) {}
 
   logout() {
     localStorage.clear();
