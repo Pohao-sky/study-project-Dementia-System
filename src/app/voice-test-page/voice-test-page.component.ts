@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
 import { VerbalFluencyTestComponent } from '../verbal-fluency-test/verbal-fluency-test.component';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-voice-test-page',
@@ -10,10 +11,12 @@ import { VerbalFluencyTestComponent } from '../verbal-fluency-test/verbal-fluenc
   styleUrl: './voice-test-page.component.scss'
 })
 export class VoiceTestPageComponent {
-   animalDone = false;
+  animalDone = false;
   vegetableDone = false;
   animalResult: any = null;
   vegetableResult: any = null;
+
+  constructor(private router: Router) {}
 
   onAnimalTestComplete(result: any) {
     this.animalResult = result;
@@ -30,8 +33,9 @@ export class VoiceTestPageComponent {
   }
 
   nextPage() {
-    // 進入下一個頁面或顯示全部結果
-    alert('語詞流暢性測驗全部完成，可進入下個步驟！');
-    // this.router.navigate(...)
+    // 語詞流暢性測驗完成後導頁至 TMT-A
+    if (this.canNext()) {
+      this.router.navigate(['/trail-making-test-a']);
+    }
   }
 }
