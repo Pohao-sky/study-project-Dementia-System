@@ -11,7 +11,7 @@ export interface LoginResponse {
 @Injectable({
   providedIn: 'root'
 })
-export class ApiService {
+export class LoginService {
   userInfo: User | null = null;
   apiUrl = 'http://localhost:3000';
 

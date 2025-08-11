@@ -1,8 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ApiService } from '../service/api.service';
 import { Router } from '@angular/router';
 import { User } from '../models/user';
+import { LoginService } from '../service/login.service';
 
 
 @Component({
@@ -16,7 +16,7 @@ export class UserInfoPageComponent implements OnInit {
   ///若沒登入就近此頁就跳回登入頁
   user: User | null = null;
 
-  constructor(private api: ApiService, private router: Router) {}
+  constructor(private api: LoginService, private router: Router) {}
 
   ngOnInit() {
     // 1. 先從 service 拿
