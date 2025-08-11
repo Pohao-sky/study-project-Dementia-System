@@ -10,7 +10,7 @@ from typing import Dict, List, Tuple, Any, Set, Optional
 import numpy as np
 from flask import Flask, request, jsonify, abort
 from flask_cors import CORS
-from flask_jwt_extended import JWTManager, create_access_token
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required
 from flask_restx import Api, Resource
 from flask_sqlalchemy import SQLAlchemy
 from dotenv import load_dotenv
@@ -72,6 +72,16 @@ class ScoreView(db.Model):
     MMSE_Score = db.Column("MMSE_Score", db.Float)
     MEMORY = db.Column("MEMORY", db.Float)
     CDRGLOB = db.Column("CDRGLOB", db.Float)
+
+
+class TrailMakingTestAResult(db.Model):
+    __tablename__ = 'trail_making_test_a_result'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.String, nullable=False)
+    duration = db.Column(db.Float, nullable=False)  # seconds
+    errors = db.Column(db.Integer, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+
 
 # =========================
 # Faster-Whisper 初始化 & 詞庫
@@ -272,6 +282,34 @@ class Login(Resource):
 
         access_token = create_access_token(identity=username)
         return {"token": access_token, "user": user_data}
+
+@api.route('/trail_making_test_a_result')
+class TrailMakingTestAResultApi(Resource):
+    @jwt_required()
+    def post(self):
+        data = request.get_json()
+        if not data:
+            abort(400, description="缺少資料")
+
+        user_id = data.get('user_id')
+        duration = data.get('duration')
+        errors = data.get('errors')
+        if user_id is None or duration is None or errors is None:
+            abort(400, description="缺少欄位")
+
+        try:
+            result = TrailMakingTestAResult(
+                user_id=str(user_id),
+                duration=float(duration),
+                errors=int(errors)
+            )
+            db.session.add(result)
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+            abort(500, description="資料庫錯誤")
+
+        return {"status": "ok"}, 201
 
 
 # =========================
