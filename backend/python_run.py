@@ -10,7 +10,7 @@ from typing import Dict, List, Tuple, Any, Set, Optional
 import numpy as np
 from flask import Flask, request, jsonify, abort
 from flask_cors import CORS
-from flask_jwt_extended import JWTManager, create_access_token, jwt_required
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from flask_restx import Api, Resource
 from flask_sqlalchemy import SQLAlchemy
 from dotenv import load_dotenv
@@ -79,6 +79,15 @@ class TrailMakingTestAResult(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.String, nullable=False)
     duration = db.Column(db.Float, nullable=False)  # seconds
+    errors = db.Column(db.Integer, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+
+
+class TrailMakingTestBResult(db.Model):
+    __tablename__ = 'trail_making_test_b_result'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.String, nullable=False)
+    duration = db.Column(db.Float, nullable=False)
     errors = db.Column(db.Integer, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
@@ -299,6 +308,35 @@ class TrailMakingTestAResultApi(Resource):
 
         try:
             result = TrailMakingTestAResult(
+                user_id=str(user_id),
+                duration=float(duration),
+                errors=int(errors)
+            )
+            db.session.add(result)
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+            abort(500, description="資料庫錯誤")
+
+        return {"status": "ok"}, 201
+
+
+@api.route('/trail_making_test_b_result')
+class TrailMakingTestBResultApi(Resource):
+    @jwt_required()
+    def post(self):
+        data = request.get_json()
+        if not data:
+            abort(400, description="缺少資料")
+
+        user_id = data.get('user_id') or get_jwt_identity()
+        duration = data.get('duration')
+        errors = data.get('errors')
+        if duration is None or errors is None or user_id is None:
+            abort(400, description="缺少欄位")
+
+        try:
+            result = TrailMakingTestBResult(
                 user_id=str(user_id),
                 duration=float(duration),
                 errors=int(errors)

@@ -1,0 +1,25 @@
+<div class="tmt-wrapper">
+  <div class="tmt-info">
+    <span>時間: {{timerDisplay}} 秒</span>
+    <span>錯誤: {{errorCount}}</span>
+  </div>
+  <canvas #canvas width="700" height="500"
+    (mousedown)="canvasMouseDown($event)"
+    (mousemove)="canvasMouseMove($event)"
+    (mouseup)="canvasMouseUp($event)">
+  </canvas>
+  @if (!started) {
+    <button class="tmt-start-btn" (click)="start()">開始連線測驗</button>
+  }
+</div>
+
+<button class="elder-btn" (click)="nextPage()">下一頁</button>
+
+@if (showRules) {
+  <div class="tmt-popup-overlay">
+    <div class="tmt-popup">
+      <div class="popup-msg">{{ rulesMessage }}</div>
+      <button (click)="closeRules()">確定</button>
+    </div>
+  </div>
+}
