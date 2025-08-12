@@ -1,6 +1,9 @@
 import { CommonModule } from '@angular/common';
 import { Component, ElementRef, ViewChild } from '@angular/core';
 import { TrailMakingTestAService } from '../service/trail-making-test-a.service';
+import { Router } from '@angular/router';
+import { LoginService } from '../service/login.service';
+import { User } from '../models/user';
 
 
 interface NodePoint {
@@ -37,17 +40,30 @@ export class TrailMakingTestAPageComponent {
   errorCount = 0;
   started = false;
   timerDisplay = '0.0';
+  canProceed = false;
 
   showRules = true;
-rulesMessage = "【遊戲規則】\n" +
-"1. 請依序由小到大，點擊畫面上數字圓圈並拖曳連線。\n" +
-"2. 只能依序連線，錯誤連線會有提醒，並記錄錯誤次數。\n" +
-"3. 點擊「開始連線測驗」後開始計時，完成全部連線即結束並顯示用時與錯誤數。\n\n" +
-"請點擊下方「開始連線測驗」按鈕開始遊戲！";
+  rulesMessage = "【遊戲規則】\n" +
+  "1. 請依序由小到大，點擊畫面上數字圓圈並拖曳連線。\n" +
+  "2. 只能依序連線，錯誤連線會有提醒，並記錄錯誤次數。\n" +
+  "3. 點擊「開始連線測驗」後開始計時，完成全部連線即結束並顯示用時與錯誤數。\n\n" +
+  "請點擊下方「開始連線測驗」按鈕開始遊戲！";
 
-  constructor(private tmtService: TrailMakingTestAService) {}
+  user: User | null = null;
+
+  constructor(private api: LoginService,private tmtService: TrailMakingTestAService, private router: Router) {}
 
   ngOnInit() {
+    // 1. 先從 service 拿
+    if (this.api.userInfo) {
+      this.user = this.api.userInfo;
+    } else {
+      // 2. 再從 localStorage 拿
+      const userStr = localStorage.getItem('userInfo');
+      if (userStr) this.user = JSON.parse(userStr);
+    }
+    // 3. 沒資料就跳回登入頁
+    if (!this.user) this.router.navigate(['/login']);
     const canvas = this.canvasRef.nativeElement;
     this.ctx = canvas.getContext('2d')!;
     this.resetTest();
@@ -67,6 +83,7 @@ rulesMessage = "【遊戲規則】\n" +
     this.endTime = null;
     this.errorCount = 0;
     this.started = false;
+    this.canProceed = false;
     if (this.timerInterval) clearInterval(this.timerInterval);
     this.timerInterval = null;
     this.setupNodes();
@@ -212,6 +229,7 @@ rulesMessage = "【遊戲規則】\n" +
           duration,
           errors: this.errorCount
         }).subscribe();
+        this.canProceed = true;
       }
     } else if (next && next !== this.lastNode) {
       this.errorCount += 1;
@@ -222,8 +240,7 @@ rulesMessage = "【遊戲規則】\n" +
     this.drawAll();
   }
   nextPage() {
-    // 進入下一個頁面或顯示全部結果
-    alert('語詞流暢性測驗全部完成，可進入下個步驟！');
-    // this.router.navigate(...)
+    if (!this.canProceed) return;
+    this.router.navigate(['/trail-making-test-b']);
   }
 }
