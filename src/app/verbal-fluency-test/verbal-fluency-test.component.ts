@@ -13,22 +13,29 @@ import { LoginService } from '../service/login.service';
 })
 export class VerbalFluencyTestComponent {
   user: User | null = null;
+  private readonly storageKey = 'verbalFluencyResult';
 
   constructor(
-    private api: LoginService,
+    private loginService: LoginService,
     private router: Router,
-    private zone: NgZone,
-    private cdr: ChangeDetectorRef
+    private angularZone: NgZone,
+    private changeDetector: ChangeDetectorRef
   ) {}
 
   ngOnInit() {
-    if (this.api.userInfo) {
-      this.user = this.api.userInfo;
+    if (this.loginService.userInfo) {
+      this.user = this.loginService.userInfo;
     } else {
       const userJson = localStorage.getItem('userInfo');
       if (userJson) this.user = JSON.parse(userJson);
     }
     if (!this.user) this.router.navigate(['/login']);
+
+    const savedResult = localStorage.getItem(this.storageKey);
+    if (savedResult) {
+      this.analyzeResult = JSON.parse(savedResult);
+      this.isDone = true;
+    }
   }
 
   @Input() type: 'animals' | 'vegetables' = 'animals';
@@ -37,7 +44,7 @@ export class VerbalFluencyTestComponent {
   @Output() testComplete = new EventEmitter<any>();
 
   countdownSeconds = 60;
-  countdownTimerId: any = null;
+  countdownTimer: any = null;
   isRecording = false;
   isDone = false;
   analyzeResult: any = null;
@@ -45,7 +52,7 @@ export class VerbalFluencyTestComponent {
   // 錄音與分段
   private audioStream: MediaStream | null = null;
   private mediaRecorder: MediaRecorder | null = null;
-  private chunkRotateTimer: any = null;
+  private chunkRotationTimer: any = null;
   private readonly chunkLengthMs = 20000; // 每 20 秒一段
 
   currentChunkIndex = 0;
@@ -73,8 +80,8 @@ export class VerbalFluencyTestComponent {
     this.isRecording = false;
 
     // 停止輪換計時器 + 停止當前 recorder（會觸發 onstop → 送出最後一段）
-    if (this.chunkRotateTimer) clearTimeout(this.chunkRotateTimer);
-    this.chunkRotateTimer = null;
+    if (this.chunkRotationTimer) clearTimeout(this.chunkRotationTimer);
+    this.chunkRotationTimer = null;
 
     if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
       this.mediaRecorder.stop();
@@ -115,15 +122,15 @@ export class VerbalFluencyTestComponent {
         if (!this.hasFinalized) {
           this.hasFinalized = true;
           await this.finalizeTest();
-          this.zone.run(() => this.cdr.markForCheck());
+          this.angularZone.run(() => this.changeDetector.markForCheck());
         }
       }
     };
 
     // 開始錄本段，並在 chunkLengthMs 後自動 stop → 產生 Blob → onstop 內啟動下一段
     this.mediaRecorder.start(); // 不用 timeslice
-    if (this.chunkRotateTimer) clearTimeout(this.chunkRotateTimer);
-    this.chunkRotateTimer = setTimeout(() => {
+    if (this.chunkRotationTimer) clearTimeout(this.chunkRotationTimer);
+    this.chunkRotationTimer = setTimeout(() => {
       if (this.mediaRecorder && this.mediaRecorder.state === 'recording') {
         this.mediaRecorder.stop();
       }
@@ -147,7 +154,7 @@ export class VerbalFluencyTestComponent {
   // === 倒數 ===
   private startCountdown() {
     this.clearCountdown();
-    this.countdownTimerId = setInterval(() => {
+    this.countdownTimer = setInterval(() => {
       this.countdownSeconds--;
       if (this.countdownSeconds <= 0) {
         this.clearCountdown();
@@ -157,8 +164,8 @@ export class VerbalFluencyTestComponent {
   }
 
   private clearCountdown() {
-    if (this.countdownTimerId) clearInterval(this.countdownTimerId);
-    this.countdownTimerId = null;
+    if (this.countdownTimer) clearInterval(this.countdownTimer);
+    this.countdownTimer = null;
   }
 
   // === 上傳與彙整 ===
@@ -201,6 +208,7 @@ export class VerbalFluencyTestComponent {
 
       this.analyzeResult = result;
       this.isDone = true;
+      localStorage.setItem(this.storageKey, JSON.stringify(result));
       this.testComplete.emit(result);
     } catch (error: any) {
       alert('語音分析失敗：' + (error?.message ?? 'unknown'));
@@ -212,8 +220,8 @@ export class VerbalFluencyTestComponent {
   // === 工具 ===
   private resetTestState() {
     this.clearCountdown();
-    if (this.chunkRotateTimer) clearTimeout(this.chunkRotateTimer);
-    this.chunkRotateTimer = null;
+    if (this.chunkRotationTimer) clearTimeout(this.chunkRotationTimer);
+    this.chunkRotationTimer = null;
 
     this.isDone = false;
     this.analyzeResult = null;
@@ -222,6 +230,8 @@ export class VerbalFluencyTestComponent {
     this.chosenMimeType = '';
     this.pendingUploads = 0;
     this.hasFinalized = false;
+
+    localStorage.removeItem(this.storageKey);
   }
 
   getKeys(object: any): string[] {

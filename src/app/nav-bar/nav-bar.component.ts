@@ -10,11 +10,11 @@ import { LoginService } from '../service/login.service';
   styleUrl: './nav-bar.component.scss'
 })
 export class NavBarComponent {
-  constructor(private router: Router, private api: LoginService) {}
+  constructor(private router: Router, private loginService: LoginService) {}
 
   logout() {
     localStorage.clear();
-    this.api.userInfo = null;
+    this.loginService.userInfo = null;
     this.router.navigate(['/login']);
   }
 

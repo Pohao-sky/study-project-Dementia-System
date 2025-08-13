@@ -5,15 +5,15 @@ import { Router } from '@angular/router';
 import { LoginService } from '../service/login.service';
 import { User } from '../models/user';
 
-interface TmtNode {
+interface TrailMakingNode {
   type: 'num' | 'char';
   label: string;
   x: number;
   y: number;
 }
-interface TmtLine {
-  from: TmtNode;
-  to: TmtNode;
+interface TrailMakingLine {
+  from: TrailMakingNode;
+  to: TrailMakingNode;
 }
 
 @Component({
@@ -24,9 +24,9 @@ interface TmtLine {
 })
 export class TrailMakingTestBPageComponent {
   @ViewChild('canvas', { static: true }) canvasRef!: ElementRef<HTMLCanvasElement>;
-  private ctx!: CanvasRenderingContext2D;
+  private canvasContext!: CanvasRenderingContext2D;
 
-  readonly RADIUS = 29;
+  private readonly nodeRadius = 29;
   readonly orderList: {type: 'num'|'char', label: string}[] = [
     {type:'num',label:'1'}, {type:'char',label:'A'},
     {type:'num',label:'2'}, {type:'char',label:'B'},
@@ -43,10 +43,10 @@ export class TrailMakingTestBPageComponent {
     {type:'num',label:'13'}
   ];
 
-  nodes: TmtNode[] = [];
-  lines: TmtLine[] = [];
+  nodes: TrailMakingNode[] = [];
+  lines: TrailMakingLine[] = [];
   dragging = false;
-  lastNode: TmtNode | null = null;
+  lastNode: TrailMakingNode | null = null;
   currentPath: number[] = [];
 
   startTime: number | null = null;
@@ -65,27 +65,27 @@ export class TrailMakingTestBPageComponent {
     "請點擊下方「開始連線測驗」按鈕開始！";
 
   constructor(
-    private api: LoginService,
-    private service: TrailMakingTestBService,
+    private loginService: LoginService,
+    private trailMakingService: TrailMakingTestBService,
     private router: Router
   ) {}
+
+  private readonly storageKey = 'trailMakingTestBResult';
 
   user: User | null = null;
 
   ngOnInit() {
-        // 1. 先從 service 拿
-    if (this.api.userInfo) {
-      this.user = this.api.userInfo;
+    if (this.loginService.userInfo) {
+      this.user = this.loginService.userInfo;
     } else {
-      // 2. 再從 localStorage 拿
-      const userStr = localStorage.getItem('userInfo');
-      if (userStr) this.user = JSON.parse(userStr);
+      const userString = localStorage.getItem('userInfo');
+      if (userString) this.user = JSON.parse(userString);
     }
-    // 3. 沒資料就跳回登入頁
     if (!this.user) this.router.navigate(['/login']);
     const canvas = this.canvasRef.nativeElement;
-    this.ctx = canvas.getContext('2d')!;
+    this.canvasContext = canvas.getContext('2d')!;
     this.resetTest();
+    this.restoreResult();
   }
 
   ngOnDestroy() {
@@ -93,6 +93,7 @@ export class TrailMakingTestBPageComponent {
   }
 
   start() {
+    localStorage.removeItem(this.storageKey);
     this.resetTest();
     this.started = true;
     this.startTime = Date.now();
@@ -131,85 +132,85 @@ export class TrailMakingTestBPageComponent {
     this.updateTimerDisplay();
   }
 
-  private randomCoords(count: number): {x:number,y:number}[] {
-    const coords: {x:number,y:number}[] = [];
+  private randomCoordinates(count: number): { x: number; y: number }[] {
+    const coordinates: { x: number; y: number }[] = [];
     const canvas = this.canvasRef.nativeElement;
-    while (coords.length < count) {
-      const x = Math.random() * (canvas.width - this.RADIUS * 2) + this.RADIUS;
-      const y = Math.random() * (canvas.height - this.RADIUS * 2) + this.RADIUS;
-      const ok = coords.every(pt => (pt.x - x) ** 2 + (pt.y - y) ** 2 > (this.RADIUS * 3) ** 2);
-      if (ok) coords.push({x,y});
+    while (coordinates.length < count) {
+      const x = Math.random() * (canvas.width - this.nodeRadius * 2) + this.nodeRadius;
+      const y = Math.random() * (canvas.height - this.nodeRadius * 2) + this.nodeRadius;
+      const isFarEnough = coordinates.every(point => (point.x - x) ** 2 + (point.y - y) ** 2 > (this.nodeRadius * 3) ** 2);
+      if (isFarEnough) coordinates.push({ x, y });
     }
-    return coords;
+    return coordinates;
   }
 
   private setupNodes() {
     this.nodes = [];
-    const coords = this.randomCoords(this.orderList.length);
+    const coordinates = this.randomCoordinates(this.orderList.length);
     for (let i = 0; i < this.orderList.length; i++) {
-      const node = { ...this.orderList[i], x: coords[i].x, y: coords[i].y } as TmtNode;
+      const node = { ...this.orderList[i], x: coordinates[i].x, y: coordinates[i].y } as TrailMakingNode;
       this.nodes.push(node);
     }
   }
 
   private drawAll() {
     const canvas = this.canvasRef.nativeElement;
-    this.ctx.clearRect(0, 0, canvas.width, canvas.height);
+    this.canvasContext.clearRect(0, 0, canvas.width, canvas.height);
     // lines
-    this.ctx.save();
-    this.ctx.lineWidth = 4;
-    this.ctx.strokeStyle = '#2186f6';
-    this.lines.forEach(l => {
-      this.ctx.beginPath();
-      this.ctx.moveTo(l.from.x, l.from.y);
-      this.ctx.lineTo(l.to.x, l.to.y);
-      this.ctx.stroke();
+    this.canvasContext.save();
+    this.canvasContext.lineWidth = 4;
+    this.canvasContext.strokeStyle = '#2186f6';
+    this.lines.forEach(line => {
+      this.canvasContext.beginPath();
+      this.canvasContext.moveTo(line.from.x, line.from.y);
+      this.canvasContext.lineTo(line.to.x, line.to.y);
+      this.canvasContext.stroke();
     });
-    this.ctx.restore();
+    this.canvasContext.restore();
     // nodes
-    this.nodes.forEach(n => {
-      this.ctx.beginPath();
-      this.ctx.arc(n.x, n.y, this.RADIUS, 0, Math.PI * 2);
-      this.ctx.fillStyle = '#fff';
-      this.ctx.fill();
-      this.ctx.lineWidth = 2.2;
-      this.ctx.strokeStyle = '#222';
-      this.ctx.stroke();
-      this.ctx.fillStyle = n.type === 'num' ? '#222' : '#1e50a2';
-      this.ctx.font = '19px bold sans-serif';
-      this.ctx.textAlign = 'center';
-      this.ctx.textBaseline = 'middle';
-      this.ctx.fillText(n.label, n.x, n.y);
+    this.nodes.forEach(node => {
+      this.canvasContext.beginPath();
+      this.canvasContext.arc(node.x, node.y, this.nodeRadius, 0, Math.PI * 2);
+      this.canvasContext.fillStyle = '#fff';
+      this.canvasContext.fill();
+      this.canvasContext.lineWidth = 2.2;
+      this.canvasContext.strokeStyle = '#222';
+      this.canvasContext.stroke();
+      this.canvasContext.fillStyle = node.type === 'num' ? '#222' : '#1e50a2';
+      this.canvasContext.font = '19px bold sans-serif';
+      this.canvasContext.textAlign = 'center';
+      this.canvasContext.textBaseline = 'middle';
+      this.canvasContext.fillText(node.label, node.x, node.y);
     });
     // dragging line
     if (this.dragging && this.lastNode && this.currentPath.length > 0) {
-      this.ctx.save();
-      this.ctx.strokeStyle = '#3bc5f3ff';
-      this.ctx.lineWidth = 3;
-      this.ctx.beginPath();
-      this.ctx.moveTo(this.lastNode.x, this.lastNode.y);
-      this.ctx.lineTo(this.currentPath[0], this.currentPath[1]);
-      this.ctx.stroke();
-      this.ctx.restore();
+      this.canvasContext.save();
+      this.canvasContext.strokeStyle = '#3bc5f3ff';
+      this.canvasContext.lineWidth = 3;
+      this.canvasContext.beginPath();
+      this.canvasContext.moveTo(this.lastNode.x, this.lastNode.y);
+      this.canvasContext.lineTo(this.currentPath[0], this.currentPath[1]);
+      this.canvasContext.stroke();
+      this.canvasContext.restore();
     }
   }
 
-  private getNodeAt(x:number,y:number): TmtNode | null {
-    return this.nodes.find(n => (n.x - x) ** 2 + (n.y - y) ** 2 <= this.RADIUS ** 2) || null;
+  private getNodeAt(x: number, y: number): TrailMakingNode | null {
+    return this.nodes.find(node => (node.x - x) ** 2 + (node.y - y) ** 2 <= this.nodeRadius ** 2) || null;
   }
 
-  canvasMouseDown(e: MouseEvent) {
+  canvasMouseDown(event: MouseEvent) {
     if (!this.started) return;
     const rect = this.canvasRef.nativeElement.getBoundingClientRect();
-    const mx = e.clientX - rect.left;
-    const my = e.clientY - rect.top;
-    const node = this.getNodeAt(mx, my);
+    const mouseX = event.clientX - rect.left;
+    const mouseY = event.clientY - rect.top;
+    const node = this.getNodeAt(mouseX, mouseY);
     if (this.lines.length === 0 && node && node.type === 'num' && node.label === '1') {
       this.dragging = true;
       this.lastNode = node;
     } else if (this.lines.length > 0) {
-      const exp = this.orderList[this.lines.length];
-      if (node && node.type === exp.type && node.label === exp.label) {
+      const expected = this.orderList[this.lines.length];
+      if (node && node.type === expected.type && node.label === expected.label) {
         this.dragging = true;
         this.lastNode = node;
       }
@@ -217,39 +218,40 @@ export class TrailMakingTestBPageComponent {
     this.drawAll();
   }
 
-  canvasMouseMove(e: MouseEvent) {
+  canvasMouseMove(event: MouseEvent) {
     if (!this.dragging || !this.lastNode) return;
     const rect = this.canvasRef.nativeElement.getBoundingClientRect();
-    const mx = e.clientX - rect.left;
-    const my = e.clientY - rect.top;
-    this.currentPath = [mx, my];
+    const mouseX = event.clientX - rect.left;
+    const mouseY = event.clientY - rect.top;
+    this.currentPath = [mouseX, mouseY];
     this.drawAll();
   }
 
-  canvasMouseUp(e: MouseEvent) {
+  canvasMouseUp(event: MouseEvent) {
     if (!this.dragging || !this.lastNode) return;
     const rect = this.canvasRef.nativeElement.getBoundingClientRect();
-    const mx = e.clientX - rect.left;
-    const my = e.clientY - rect.top;
-    const next = this.getNodeAt(mx, my);
+    const mouseX = event.clientX - rect.left;
+    const mouseY = event.clientY - rect.top;
+    const nextNode = this.getNodeAt(mouseX, mouseY);
     const expected = this.orderList[this.lines.length + 1];
 
-    if (next && expected && next.type === expected.type && next.label === expected.label && next !== this.lastNode) {
-      this.lines.push({ from: this.lastNode, to: next });
-      this.lastNode = next;
+    if (nextNode && expected && nextNode.type === expected.type && nextNode.label === expected.label && nextNode !== this.lastNode) {
+      this.lines.push({ from: this.lastNode, to: nextNode });
+      this.lastNode = nextNode;
       if (this.lines.length === this.orderList.length - 1) {
         this.dragging = false;
         this.endTime = Date.now();
         this.updateTimerDisplay();
         clearInterval(this.timerInterval);
         const duration = (this.endTime - (this.startTime || 0)) / 1000;
-        alert(`完成！總花費時間：${duration.toFixed(1)} 秒\n錯誤次數：${this.errorCount}`);
-        this.service.submitResult({ duration, errors: this.errorCount }).subscribe();
+        const result = { duration, errors: this.errorCount };
+        alert(`完成！總花費時間：${duration.toFixed(1)} 秒`);
+        this.trailMakingService.submitResult(result).subscribe();
+        localStorage.setItem(this.storageKey, JSON.stringify(result));
       }
-    } else if (next && next !== this.lastNode) {
-      this.errorCount += 1;
-      const curr = this.orderList[this.lines.length];
-      const nextTypeLabel = curr.type === 'num' ? '字母' : '數字';
+    } else if (nextNode && nextNode !== this.lastNode) {
+      const currentExpected = this.orderList[this.lines.length];
+      const nextTypeLabel = currentExpected.type === 'num' ? '字母' : '數字';
       alert(`你剛連到 ${this.lastNode.label}，下一個${nextTypeLabel}是什麼？`);
     }
     this.dragging = false;
@@ -261,5 +263,12 @@ export class TrailMakingTestBPageComponent {
     // 進入下一個頁面或顯示全部結果
     alert('連線測驗全部完成，可進入下個步驟！');
     // this.router.navigate(...)
+  }
+
+  private restoreResult() {
+    const saved = localStorage.getItem(this.storageKey);
+    if (!saved) return;
+    const result = JSON.parse(saved);
+    this.timerDisplay = result.duration.toFixed(1);
   }
 }
