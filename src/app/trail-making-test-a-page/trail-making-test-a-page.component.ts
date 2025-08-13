@@ -7,11 +7,11 @@ import { User } from '../models/user';
 
 
 interface NodePoint {
-  num: number;
+  label: number;
   x: number;
   y: number;
 }
-interface LineConn {
+interface LineConnection {
   from: NodePoint;
   to: NodePoint;
 }
@@ -24,12 +24,12 @@ interface LineConn {
 })
 export class TrailMakingTestAPageComponent {
   @ViewChild('canvas', { static: true }) canvasRef!: ElementRef<HTMLCanvasElement>;
-  private ctx!: CanvasRenderingContext2D;
+  private canvasContext!: CanvasRenderingContext2D;
 
-  readonly N = 24;
-  readonly RADIUS = 22;
+  private readonly totalNodeCount = 24;
+  private readonly nodeRadius = 22;
   nodes: NodePoint[] = [];
-  lines: LineConn[] = [];
+  lines: LineConnection[] = [];
   dragging = false;
   lastNode: NodePoint | null = null;
   currentPath: number[] = [];
@@ -51,22 +51,27 @@ export class TrailMakingTestAPageComponent {
 
   user: User | null = null;
 
-  constructor(private api: LoginService,private tmtService: TrailMakingTestAService, private router: Router) {}
+  private readonly storageKey = 'trailMakingTestAResult';
+
+  constructor(
+    private loginService: LoginService,
+    private trailMakingService: TrailMakingTestAService,
+    private router: Router
+  ) {}
 
   ngOnInit() {
-    // 1. 先從 service 拿
-    if (this.api.userInfo) {
-      this.user = this.api.userInfo;
+    if (this.loginService.userInfo) {
+      this.user = this.loginService.userInfo;
     } else {
-      // 2. 再從 localStorage 拿
-      const userStr = localStorage.getItem('userInfo');
-      if (userStr) this.user = JSON.parse(userStr);
+      const userString = localStorage.getItem('userInfo');
+      if (userString) this.user = JSON.parse(userString);
     }
-    // 3. 沒資料就跳回登入頁
     if (!this.user) this.router.navigate(['/login']);
+
     const canvas = this.canvasRef.nativeElement;
-    this.ctx = canvas.getContext('2d')!;
+    this.canvasContext = canvas.getContext('2d')!;
     this.resetTest();
+    this.restoreResult();
   }
 
   ngOnDestroy() {
@@ -92,6 +97,7 @@ export class TrailMakingTestAPageComponent {
   }
 
   start() {
+    localStorage.removeItem(this.storageKey);
     this.resetTest();
     this.started = true;
     this.startTime = Date.now();
@@ -112,128 +118,127 @@ export class TrailMakingTestAPageComponent {
     }
   }
 
-  private randomNodes(n: number): NodePoint[] {
-    const arr: NodePoint[] = [];
-    let count = 0;
+  private randomNodes(count: number): NodePoint[] {
+    const points: NodePoint[] = [];
+    let attempts = 0;
     const canvas = this.canvasRef.nativeElement;
-    while (arr.length < n && count < 3000) {
-      const x = Math.random() * (canvas.width - this.RADIUS * 2) + this.RADIUS;
-      const y = Math.random() * (canvas.height - this.RADIUS * 2) + this.RADIUS;
-      if (arr.every(pt => (pt.x - x) ** 2 + (pt.y - y) ** 2 > this.RADIUS * 2.8 * this.RADIUS * 2.8)) {
-        arr.push({ num: arr.length + 1, x, y });
+    while (points.length < count && attempts < 3000) {
+      const x = Math.random() * (canvas.width - this.nodeRadius * 2) + this.nodeRadius;
+      const y = Math.random() * (canvas.height - this.nodeRadius * 2) + this.nodeRadius;
+      const isFarEnough = points.every(point => (point.x - x) ** 2 + (point.y - y) ** 2 > this.nodeRadius * 2.8 * this.nodeRadius * 2.8);
+      if (isFarEnough) {
+        points.push({ label: points.length + 1, x, y });
       }
-      count++;
+      attempts++;
     }
-    return arr;
+    return points;
   }
 
   private setupNodes() {
-    const coords = this.randomNodes(this.N);
-    const nums = Array.from({ length: this.N }, (_, i) => i + 1).sort(() => Math.random() - 0.5);
-    for (let i = 0; i < this.N; i++) {
-      this.nodes.push({ num: nums[i], x: coords[i].x, y: coords[i].y });
+    const coordinates = this.randomNodes(this.totalNodeCount);
+    const numbers = Array.from({ length: this.totalNodeCount }, (_, i) => i + 1).sort(() => Math.random() - 0.5);
+    for (let i = 0; i < this.totalNodeCount; i++) {
+      this.nodes.push({ label: numbers[i], x: coordinates[i].x, y: coordinates[i].y });
     }
-    this.nodes.sort((a, b) => a.num - b.num);
+    this.nodes.sort((a, b) => a.label - b.label);
   }
 
   private drawAll() {
     const canvas = this.canvasRef.nativeElement;
-    this.ctx.clearRect(0, 0, canvas.width, canvas.height);
-    this.ctx.save();
-    this.ctx.lineWidth = 4;
-    this.ctx.strokeStyle = '#2186f6';
-    this.lines.forEach(l => {
-      this.ctx.beginPath();
-      this.ctx.moveTo(l.from.x, l.from.y);
-      this.ctx.lineTo(l.to.x, l.to.y);
-      this.ctx.stroke();
+    this.canvasContext.clearRect(0, 0, canvas.width, canvas.height);
+    this.canvasContext.save();
+    this.canvasContext.lineWidth = 4;
+    this.canvasContext.strokeStyle = '#2186f6';
+    this.lines.forEach(line => {
+      this.canvasContext.beginPath();
+      this.canvasContext.moveTo(line.from.x, line.from.y);
+      this.canvasContext.lineTo(line.to.x, line.to.y);
+      this.canvasContext.stroke();
     });
-    this.ctx.restore();
-    this.nodes.forEach(n => {
-      this.ctx.beginPath();
-      this.ctx.arc(n.x, n.y, this.RADIUS, 0, Math.PI * 2);
-      this.ctx.fillStyle = '#fff';
-      this.ctx.fill();
-      this.ctx.lineWidth = 2.2;
-      this.ctx.strokeStyle = '#222';
-      this.ctx.stroke();
-      this.ctx.fillStyle = '#222';
-      this.ctx.font = '18px bold sans-serif';
-      this.ctx.textAlign = 'center';
-      this.ctx.textBaseline = 'middle';
-      this.ctx.fillText(n.num.toString(), n.x, n.y);
+    this.canvasContext.restore();
+    this.nodes.forEach(node => {
+      this.canvasContext.beginPath();
+      this.canvasContext.arc(node.x, node.y, this.nodeRadius, 0, Math.PI * 2);
+      this.canvasContext.fillStyle = '#fff';
+      this.canvasContext.fill();
+      this.canvasContext.lineWidth = 2.2;
+      this.canvasContext.strokeStyle = '#222';
+      this.canvasContext.stroke();
+      this.canvasContext.fillStyle = '#222';
+      this.canvasContext.font = '18px bold sans-serif';
+      this.canvasContext.textAlign = 'center';
+      this.canvasContext.textBaseline = 'middle';
+      this.canvasContext.fillText(node.label.toString(), node.x, node.y);
     });
     if (this.dragging && this.lastNode && this.currentPath.length > 0) {
-      this.ctx.save();
-      this.ctx.strokeStyle = '#3bc5f3ff';
-      this.ctx.lineWidth = 3;
-      this.ctx.beginPath();
-      this.ctx.moveTo(this.lastNode.x, this.lastNode.y);
-      this.ctx.lineTo(this.currentPath[0], this.currentPath[1]);
-      this.ctx.stroke();
-      this.ctx.restore();
+      this.canvasContext.save();
+      this.canvasContext.strokeStyle = '#3bc5f3ff';
+      this.canvasContext.lineWidth = 3;
+      this.canvasContext.beginPath();
+      this.canvasContext.moveTo(this.lastNode.x, this.lastNode.y);
+      this.canvasContext.lineTo(this.currentPath[0], this.currentPath[1]);
+      this.canvasContext.stroke();
+      this.canvasContext.restore();
     }
   }
 
   private getNodeAt(x: number, y: number): NodePoint | null {
-    for (const n of this.nodes) {
-      if ((n.x - x) ** 2 + (n.y - y) ** 2 <= this.RADIUS * this.RADIUS) return n;
+    for (const node of this.nodes) {
+      if ((node.x - x) ** 2 + (node.y - y) ** 2 <= this.nodeRadius * this.nodeRadius) return node;
     }
     return null;
   }
 
-  canvasMouseDown(evt: MouseEvent) {
+  canvasMouseDown(event: MouseEvent) {
     if (!this.started) return;
     const rect = this.canvasRef.nativeElement.getBoundingClientRect();
-    const mx = evt.clientX - rect.left;
-    const my = evt.clientY - rect.top;
-    const node = this.getNodeAt(mx, my);
+    const mouseX = event.clientX - rect.left;
+    const mouseY = event.clientY - rect.top;
+    const node = this.getNodeAt(mouseX, mouseY);
     if (!node) return;
-    if (this.lines.length === 0 && node.num === 1) {
+    if (this.lines.length === 0 && node.label === 1) {
       this.dragging = true;
       this.lastNode = node;
-    } else if (this.lines.length > 0 && node.num === this.lines.length + 1) {
+    } else if (this.lines.length > 0 && node.label === this.lines.length + 1) {
       this.dragging = true;
       this.lastNode = node;
     }
     this.drawAll();
   }
 
-  canvasMouseMove(evt: MouseEvent) {
+  canvasMouseMove(event: MouseEvent) {
     if (!this.dragging || !this.lastNode) return;
     const rect = this.canvasRef.nativeElement.getBoundingClientRect();
-    const mx = evt.clientX - rect.left;
-    const my = evt.clientY - rect.top;
-    this.currentPath = [mx, my];
+    const mouseX = event.clientX - rect.left;
+    const mouseY = event.clientY - rect.top;
+    this.currentPath = [mouseX, mouseY];
     this.drawAll();
   }
 
-  canvasMouseUp(evt: MouseEvent) {
+  canvasMouseUp(event: MouseEvent) {
     if (!this.dragging || !this.lastNode) return;
     const rect = this.canvasRef.nativeElement.getBoundingClientRect();
-    const mx = evt.clientX - rect.left;
-    const my = evt.clientY - rect.top;
-    const next = this.getNodeAt(mx, my);
-    const expectedNum = this.lines.length + 2;
-    if (next && next.num === expectedNum && next !== this.lastNode) {
-      this.lines.push({ from: this.lastNode, to: next });
-      this.lastNode = next;
-      if (next.num === this.N) {
+    const mouseX = event.clientX - rect.left;
+    const mouseY = event.clientY - rect.top;
+    const nextNode = this.getNodeAt(mouseX, mouseY);
+    const expectedLabel = this.lines.length + 2;
+    if (nextNode && nextNode.label === expectedLabel && nextNode !== this.lastNode) {
+      this.lines.push({ from: this.lastNode, to: nextNode });
+      this.lastNode = nextNode;
+      if (nextNode.label === this.totalNodeCount) {
         this.dragging = false;
         this.endTime = Date.now();
         this.updateTimerDisplay();
         clearInterval(this.timerInterval);
         const duration = (this.endTime - (this.startTime || 0)) / 1000;
-        alert(`完成！總花費時間：${duration.toFixed(1)} 秒\n錯誤次數：${this.errorCount}`);
-        this.tmtService.submitResult({
-          duration,
-          errors: this.errorCount
-        }).subscribe();
+        const result = { duration, errors: this.errorCount };
+        alert(`完成！總花費時間：${duration.toFixed(1)} 秒`);
+        this.trailMakingService.submitResult(result).subscribe();
+        localStorage.setItem(this.storageKey, JSON.stringify(result));
         this.canProceed = true;
       }
-    } else if (next && next !== this.lastNode) {
-      this.errorCount += 1;
-      alert(`錯誤！你剛連到數字 ${this.lastNode?.num}，下一個數字是什麼？`);
+    } else if (nextNode && nextNode !== this.lastNode) {
+      alert(`錯誤！你剛連到數字 ${this.lastNode?.label}，下一個數字是什麼？`);
     }
     this.dragging = false;
     this.currentPath = [];
@@ -242,5 +247,13 @@ export class TrailMakingTestAPageComponent {
   nextPage() {
     if (!this.canProceed) return;
     this.router.navigate(['/trail-making-test-b']);
+  }
+
+  private restoreResult() {
+    const saved = localStorage.getItem(this.storageKey);
+    if (!saved) return;
+    const result = JSON.parse(saved);
+    this.timerDisplay = result.duration.toFixed(1);
+    this.canProceed = true;
   }
 }
