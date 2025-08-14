@@ -156,7 +156,12 @@ export class TrailMakingTestBPageComponent {
   private drawAll() {
     const canvas = this.canvasRef.nativeElement;
     this.canvasContext.clearRect(0, 0, canvas.width, canvas.height);
-    // lines
+    this.drawLines();
+    this.drawNodes();
+    this.drawDraggingLine();
+  }
+
+  private drawLines() {
     this.canvasContext.save();
     this.canvasContext.lineWidth = 4;
     this.canvasContext.strokeStyle = '#2186f6';
@@ -167,8 +172,15 @@ export class TrailMakingTestBPageComponent {
       this.canvasContext.stroke();
     });
     this.canvasContext.restore();
-    // nodes
+  }
+
+  private drawNodes() {
     this.nodes.forEach(node => {
+      this.canvasContext.save();
+      if (this.isNodeConnected(node)) {
+        this.canvasContext.shadowColor = '#09ff00ff';
+        this.canvasContext.shadowBlur = 15;
+      }
       this.canvasContext.beginPath();
       this.canvasContext.arc(node.x, node.y, this.nodeRadius, 0, Math.PI * 2);
       this.canvasContext.fillStyle = '#fff';
@@ -181,18 +193,24 @@ export class TrailMakingTestBPageComponent {
       this.canvasContext.textAlign = 'center';
       this.canvasContext.textBaseline = 'middle';
       this.canvasContext.fillText(node.label, node.x, node.y);
-    });
-    // dragging line
-    if (this.dragging && this.lastNode && this.currentPath.length > 0) {
-      this.canvasContext.save();
-      this.canvasContext.strokeStyle = '#3bc5f3ff';
-      this.canvasContext.lineWidth = 3;
-      this.canvasContext.beginPath();
-      this.canvasContext.moveTo(this.lastNode.x, this.lastNode.y);
-      this.canvasContext.lineTo(this.currentPath[0], this.currentPath[1]);
-      this.canvasContext.stroke();
       this.canvasContext.restore();
-    }
+    });
+  }
+
+  private drawDraggingLine() {
+    if (!this.dragging || !this.lastNode || this.currentPath.length === 0) return;
+    this.canvasContext.save();
+    this.canvasContext.strokeStyle = '#3bc5f3ff';
+    this.canvasContext.lineWidth = 3;
+    this.canvasContext.beginPath();
+    this.canvasContext.moveTo(this.lastNode.x, this.lastNode.y);
+    this.canvasContext.lineTo(this.currentPath[0], this.currentPath[1]);
+    this.canvasContext.stroke();
+    this.canvasContext.restore();
+  }
+
+  private isNodeConnected(node: TrailMakingNode): boolean {
+    return this.lines.some(line => line.from === node || line.to === node);
   }
 
   private getNodeAt(x: number, y: number): TrailMakingNode | null {
