@@ -210,7 +210,10 @@ export class TrailMakingTestBPageComponent {
   }
 
   private isNodeConnected(node: TrailMakingNode): boolean {
-    return this.lines.some(line => line.from === node || line.to === node);
+    return (
+      (node.type === 'num' && node.label === '1') ||
+      this.lines.some(line => line.from === node || line.to === node)
+    );
   }
 
   private getNodeAt(x: number, y: number): TrailMakingNode | null {
