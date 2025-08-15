@@ -1,0 +1,10 @@
+<div class="memory-wrapper">
+  <div class="hint-text">
+    相較以前，您的記憶力是否有明顯受損？
+  </div>
+  <div class="button-group">
+    <button class="whether-btn" [class.active]="selectedAnswer==='yes'" (click)="selectAnswer('yes')">是</button>
+    <button class="whether-btn" [class.active]="selectedAnswer==='no'" (click)="selectAnswer('no')">否</button>
+  </div>
+</div>
+<button class="elder-btn" (click)="nextPage()">下一頁</button>
