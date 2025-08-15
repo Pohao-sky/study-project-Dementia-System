@@ -1,0 +1,84 @@
+.memory-wrapper {
+  text-align: center;
+
+  .hint-text{
+    display: block;
+    text-align: center;
+    font-size: 1.4rem;       // 比 h3 再大一些
+    color: #fff;
+    background: #444;        // 深灰背景，白字反差高
+    font-weight: bold;       // 粗體
+    padding: 18px 24px;      // 內距增加
+    margin: 24px auto 30px auto; // 上下間距
+    border-radius: 18px;     // 圓角
+    box-shadow: 0 4px 18px #bbb; // 陰影
+    letter-spacing: 2px;     // 字距
+    max-width: 650px;        // 避免太長行
+    transition: box-shadow 0.2s;
+  }
+
+  .button-group {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 2%;
+    margin-bottom: 5%;
+
+    .whether-btn {
+      width: 20%;
+      height: 50px;
+      font-size: 1.4rem;
+      background-color: #000000;
+      color: #fff;
+      font-weight: bold;
+      border-radius: 30px;
+
+      /* 讓勾勾和文字一起置中 */
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+
+      /* 先不顯示勾勾 */
+      &::after {
+        content: "✓";
+        display: none;
+        font-size: 1.2rem;
+        line-height: 1;
+      }
+    }
+
+    .whether-btn.active {
+      background-color: #01f50a;
+
+      /* 有 .active 時顯示勾勾 */
+      &::after {
+        display: inline-block;
+      }
+    }
+  }
+}
+
+.elder-btn {
+  display: block;
+  width: 60%;
+  margin: 38px auto 0 auto;
+  margin-bottom: 1%;
+  padding: 18px 0;
+  font-size: 1.4rem;
+  font-weight: bold;
+  background: #333;  // 原 #fd8c00 改為深灰
+  color: #fff;       // 保持白字
+  border: none;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px #bbb; // 原 #e4e4e4 改成較深灰
+  letter-spacing: 4px;
+  cursor: pointer;
+  transition: background 0.2s;
+
+  &:active,
+  &:focus {
+    background: #666; // 原 #ffa740 改為中灰
+    outline: none;
+  }
+}
