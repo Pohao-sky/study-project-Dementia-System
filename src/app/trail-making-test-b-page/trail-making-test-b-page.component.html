@@ -12,7 +12,7 @@
   }
 </div>
 
-<button class="elder-btn" (click)="nextPage()">下一頁</button>
+<button class="elder-btn" (click)="nextPage()" [disabled]="!canProceed">下一頁</button>
 
 @if (showRules) {
   <div class="tmt-popup-overlay">

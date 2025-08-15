@@ -55,6 +55,7 @@ export class TrailMakingTestBPageComponent {
   errorCount = 0;
   started = false;
   timerDisplay = '0.0';
+  canProceed = false;
 
   showRules = true;
   rulesMessage =
@@ -125,6 +126,7 @@ export class TrailMakingTestBPageComponent {
     this.endTime = null;
     this.errorCount = 0;
     this.started = false;
+    this.canProceed = false;
     if (this.timerInterval) clearInterval(this.timerInterval);
     this.timerInterval = null;
     this.setupNodes();
@@ -269,6 +271,7 @@ export class TrailMakingTestBPageComponent {
         alert(`完成！總花費時間：${duration.toFixed(1)} 秒`);
         this.trailMakingService.submitResult(result).subscribe();
         localStorage.setItem(this.storageKey, JSON.stringify(result));
+        this.canProceed = true;
       }
     } else if (nextNode && nextNode !== this.lastNode) {
       const currentExpected = this.orderList[this.lines.length];
@@ -281,9 +284,8 @@ export class TrailMakingTestBPageComponent {
   }
 
   nextPage() {
-    // 進入下一個頁面或顯示全部結果
-    alert('連線測驗全部完成，可進入下個步驟！');
-    // this.router.navigate(...)
+    if (!this.canProceed) return;
+    this.router.navigate(['/memory-decline']);
   }
 
   private restoreResult() {
@@ -291,5 +293,6 @@ export class TrailMakingTestBPageComponent {
     if (!saved) return;
     const result = JSON.parse(saved);
     this.timerDisplay = result.duration.toFixed(1);
+    this.canProceed = true;
   }
 }
