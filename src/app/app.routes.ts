@@ -5,6 +5,7 @@ import { UserInfoPageComponent } from './user-info-page/user-info-page.component
 import { TrailMakingTestAPageComponent } from './trail-making-test-a-page/trail-making-test-a-page.component';
 import { TrailMakingTestBPageComponent } from './trail-making-test-b-page/trail-making-test-b-page.component';
 import { MemoryDeclinePageComponent } from './memory-decline-page/memory-decline-page.component';
+import { DementiaPredictionPageComponent } from './dementia-prediction-page/dementia-prediction-page.component';
 
 export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'login' },
@@ -14,4 +15,5 @@ export const routes: Routes = [
   { path: 'trail-making-test-a', component: TrailMakingTestAPageComponent },
   { path: 'trail-making-test-b', component: TrailMakingTestBPageComponent },
   { path: 'memory-decline', component: MemoryDeclinePageComponent },
+  { path: 'dementia-prediction', component: DementiaPredictionPageComponent },
 ];
