@@ -54,8 +54,7 @@ export class MemoryDeclinePageComponent implements OnInit {
   }
 
   nextPage() {
-    // 進入下一個頁面或顯示全部結果
-    alert('可進入下個步驟！');
-    // this.router.navigate(...)
+    if (!this.selectedAnswer) return;
+    this.router.navigate(['/dementia-prediction']);
   }
 }
