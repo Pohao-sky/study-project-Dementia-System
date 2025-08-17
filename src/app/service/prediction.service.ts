@@ -16,7 +16,7 @@ export interface PredictionPayload {
 }
 
 export interface PredictionResult {
-  prediction: string;
+  prediction: number;
   probability: number;
 }
 

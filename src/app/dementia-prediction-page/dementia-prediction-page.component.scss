@@ -1,7 +1,47 @@
-.summary, .result {
-  margin: 1rem 0;
-}
+.prediction-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem;
 
-.predict-btn {
-  margin-top: 1rem;
+  .summary-card,
+  .result-card {
+    width: 100%;
+    max-width: 600px;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+
+    ul {
+      list-style: none;
+      padding: 0;
+      font-size: 20PX;
+    }
+
+    P{
+      font-size: 20PX;
+    }
+  }
+
+  .predict-btn {
+    margin-top: 1rem;
+    padding: 0.75rem 1.5rem;
+    background-color: #504e4e;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    font-size: 20PX;
+    cursor: pointer;
+
+    &:hover {
+      background-color: #000000;
+    }
+  }
+
+  .prediction-text {
+    margin: 0 0 0.5rem 0;
+    font-weight: bold;
+  }
 }
