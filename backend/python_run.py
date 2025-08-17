@@ -16,11 +16,13 @@ from flask_sqlalchemy import SQLAlchemy
 from dotenv import load_dotenv
 from werkzeug.exceptions import HTTPException
 
-import model  # 假設 model.py 中有 predict(input_data) 函式
+from model import predict_with_probability, load_trained_model
 from faster_whisper import WhisperModel
 import torch
 import jieba
 import binascii
+import logging
+import traceback
 
 # =========================
 # 環境與 Flask 初始化
@@ -177,6 +179,18 @@ animals: Set[str] = {
     "鸚鵡螺", "小熊貓", "蝸牛", "蛞蝓", "食蟻獸", "福壽螺",
 }
 
+REQUIRED_FIELDS_IN_ORDER: list[str] = [
+    "CDR_SUM",
+    "MMSE",
+    "MEMORY_DECLINE",
+    "VEGETABLE_COUNT",
+    "ANIMAL_COUNT",
+    "TRAIL_B_SECONDS",
+    "TRAIL_A_SECONDS",
+    "CDR_GLOB",
+    "CDR_MEMORY",
+]
+
 for vocab in vegetables | animals:
     jieba.add_word(vocab)
 
@@ -281,6 +295,55 @@ def transcribe_chunk_bytes(audio_bytes: bytes, options: ChunkTranscribeOptions) 
         )
     return "".join(seg.text for seg in segments)
 
+def parse_and_validate_features(request_json: dict) -> list[float]:
+    """
+    從 JSON 取值並轉為 float list，順序與訓練一致。
+    - 單一職責：只負責輸入解析與驗證。
+    - Early Return：任何錯誤立即拋出 400。
+    """
+    if not isinstance(request_json, dict):
+        abort(400, description="請提供 JSON 物件作為輸入")
+
+    feature_values: list[float] = []
+    for field_name in REQUIRED_FIELDS_IN_ORDER:
+        if field_name not in request_json:
+            abort(400, description=f"缺少欄位: {field_name}")
+        try:
+            numeric_value = float(request_json[field_name])
+        except (TypeError, ValueError):
+            abort(400, description=f"欄位格式錯誤: {field_name} 必須為數值")
+        feature_values.append(numeric_value)
+
+    if np.isnan(np.asarray(feature_values, dtype=float)).any():
+        abort(400, description="輸入包含 NaN，請提供完整數值")
+
+    return feature_values
+
+
+def validate_feature_count_against_model(feature_values: list[float]) -> None:
+    """
+    檢查輸入特徵數是否符合模型訓練時設定。
+    - 單一職責：只負責比對數量；若不合則拋 ValueError（由上層決定回應）。
+    """
+    model = load_trained_model()
+    if hasattr(model, "n_features_in_"):
+        expected_feature_count = int(model.n_features_in_)
+        actual_feature_count = len(feature_values)
+        if actual_feature_count != expected_feature_count:
+            raise ValueError(
+                f"特徵數不符：模型需要 {expected_feature_count} 個特徵，但收到 {actual_feature_count} 個。"
+            )
+
+
+def make_prediction_response(predicted_label: int, positive_probability: float) -> dict:
+    """
+    將預測結果整理為可序列化的回應。
+    - 單一職責：只負責輸出結構化。
+    """
+    return {
+        "prediction": int(predicted_label),
+        "probability": float(positive_probability),
+    }
 
 # =========================
 # 認證：登入 API（保持原行為）
@@ -316,64 +379,6 @@ class Login(Resource):
 
         access_token = create_access_token(identity=username)
         return {"token": access_token, "user": user_data}
-
-@api.route('/trail_making_test_a_result')
-class TrailMakingTestAResultApi(Resource):
-    @jwt_required()
-    def post(self):
-        data = request.get_json()
-        if not data:
-            abort(400, description="缺少資料")
-
-        user_id = data.get('user_id')
-        duration = data.get('duration')
-        errors = data.get('errors')
-        if user_id is None or duration is None or errors is None:
-            abort(400, description="缺少欄位")
-
-        try:
-            result = TrailMakingTestAResult(
-                user_id=str(user_id),
-                duration=float(duration),
-                errors=int(errors)
-            )
-            db.session.add(result)
-            db.session.commit()
-        except Exception:
-            db.session.rollback()
-            abort(500, description="資料庫錯誤")
-
-        return {"status": "ok"}, 201
-
-
-@api.route('/trail_making_test_b_result')
-class TrailMakingTestBResultApi(Resource):
-    @jwt_required()
-    def post(self):
-        data = request.get_json()
-        if not data:
-            abort(400, description="缺少資料")
-
-        user_id = data.get('user_id') or get_jwt_identity()
-        duration = data.get('duration')
-        errors = data.get('errors')
-        if duration is None or errors is None or user_id is None:
-            abort(400, description="缺少欄位")
-
-        try:
-            result = TrailMakingTestBResult(
-                user_id=str(user_id),
-                duration=float(duration),
-                errors=int(errors)
-            )
-            db.session.add(result)
-            db.session.commit()
-        except Exception:
-            db.session.rollback()
-            abort(500, description="資料庫錯誤")
-
-        return {"status": "ok"}, 201
-
 
 # =========================
 # 上傳分段：立即嘗試轉錄並暫存文字（穩定版）
@@ -476,6 +481,99 @@ class SpeechTestFinalize(Resource):
         audio_chunks.pop(recording_id, None)
 
         return {"total": total, "detail": detail, "chunks": len(ordered_indices)}
+
+@api.route('/trail_making_test_a_result')
+class TrailMakingTestAResultApi(Resource):
+    @jwt_required()
+    def post(self):
+        data = request.get_json()
+        if not data:
+            abort(400, description="缺少資料")
+
+        user_id = data.get('user_id')
+        duration = data.get('duration')
+        errors = data.get('errors')
+        if user_id is None or duration is None or errors is None:
+            abort(400, description="缺少欄位")
+
+        try:
+            result = TrailMakingTestAResult(
+                user_id=str(user_id),
+                duration=float(duration),
+                errors=int(errors)
+            )
+            db.session.add(result)
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+            abort(500, description="資料庫錯誤")
+
+        return {"status": "ok"}, 201
+
+
+@api.route('/trail_making_test_b_result')
+class TrailMakingTestBResultApi(Resource):
+    @jwt_required()
+    def post(self):
+        data = request.get_json()
+        if not data:
+            abort(400, description="缺少資料")
+
+        user_id = data.get('user_id') or get_jwt_identity()
+        duration = data.get('duration')
+        errors = data.get('errors')
+        if duration is None or errors is None or user_id is None:
+            abort(400, description="缺少欄位")
+
+        try:
+            result = TrailMakingTestBResult(
+                user_id=str(user_id),
+                duration=float(duration),
+                errors=int(errors)
+            )
+            db.session.add(result)
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+            abort(500, description="資料庫錯誤")
+
+        return {"status": "ok"}, 20
+
+
+# =========================
+# 模型預測
+# =========================
+@api.route('/predict')
+class Predict(Resource):
+    def post(self):
+        # Content-Type 檢查
+        if not request.is_json:
+            abort(400, description="Content-Type 必須是 application/json")
+
+        request_json = request.get_json(silent=True)
+        if request_json is None:
+            abort(400, description="缺少或無法解析 JSON 內容")
+
+        # 解析與基本驗證
+        feature_values = parse_and_validate_features(request_json)
+
+        # 先比對特徵數量（可避免後續一連串 AttributeError/ValueError）
+        try:
+            validate_feature_count_against_model(feature_values)
+        except ValueError as ve:
+            abort(400, description=str(ve))
+
+        # 執行推論
+        try:
+            predicted_label, positive_probability = predict_with_probability(feature_values)
+            return make_prediction_response(predicted_label, positive_probability)
+        except FileNotFoundError:
+            abort(500, description="模型檔案不存在，請聯繫系統管理員")
+        except Exception as ex:
+            # 對外訊息簡潔；詳細錯誤記進日誌（含 traceback）
+            logging.error("Inference failed with exception: %r", ex)
+            logging.error("Traceback:\n%s", traceback.format_exc())
+            abort(500, description="推論失敗：服務端錯誤，請聯繫系統管理員。")
 
 
 # =========================
