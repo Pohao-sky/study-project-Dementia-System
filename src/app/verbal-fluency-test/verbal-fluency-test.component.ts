@@ -13,7 +13,6 @@ import { LoginService } from '../service/login.service';
 })
 export class VerbalFluencyTestComponent {
   user: User | null = null;
-  private readonly storageKey = 'verbalFluencyResult';
 
   constructor(
     private loginService: LoginService,
@@ -42,6 +41,10 @@ export class VerbalFluencyTestComponent {
   @Input() title: string = '語詞流暢性測驗';
   @Input() disabled = false;
   @Output() testComplete = new EventEmitter<any>();
+
+  private get storageKey(): string {
+    return `verbalFluencyResult_${this.type}`;
+  }
 
   countdownSeconds = 60;
   countdownTimer: any = null;

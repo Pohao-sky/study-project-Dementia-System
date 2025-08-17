@@ -1,0 +1,20 @@
+@if (payload) {
+  <div class="summary">
+    <p><strong>CDR總分：</strong>{{ payload.CDR_SUM }}</p>
+    <p><strong>CDR-MEMORY：</strong>{{ payload.CDR_MEMORY }}</p>
+    <p><strong>CDR加權：</strong>{{ payload.CDR_GLOB }}</p>
+    <p><strong>MMSE總分：</strong>{{ payload.MMSE }}</p>
+    <p><strong>動物數：</strong>{{ payload.ANIMAL_COUNT }}</p>
+    <p><strong>蔬菜數：</strong>{{ payload.VEGETABLE_COUNT }}</p>
+    <p><strong>Trail Making Test A 秒數：</strong>{{ payload.TRAIL_A_SECONDS }}</p>
+    <p><strong>Trail Making Test B 秒數：</strong>{{ payload.TRAIL_B_SECONDS }}</p>
+    <p><strong>記憶力衰退：</strong>{{ payload.MEMORY_DECLINE === 1 ? '是' : '否' }}</p>
+  </div>
+}
+<button class="predict-btn" (click)="predict()">預測</button>
+@if (result) {
+  <div class="result">
+    <p><strong>預測結果：</strong>{{ result.prediction }}</p>
+    <p><strong>機率：</strong>{{ result.probability }}</p>
+  </div>
+}
