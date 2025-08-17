@@ -6,6 +6,7 @@ import { LoginService } from '../service/login.service';
 describe('MemoryDeclinePageComponent', () => {
   let component: MemoryDeclinePageComponent;
   let fixture: ComponentFixture<MemoryDeclinePageComponent>;
+  let router: any;
 
   beforeEach(async () => {
     localStorage.removeItem('memoryDeclineAnswer');
@@ -34,5 +35,16 @@ describe('MemoryDeclinePageComponent', () => {
   it('stores "0" for no in localStorage when selected', () => {
     component.selectAnswer('no');
     expect(localStorage.getItem('memoryDeclineAnswer')).toBe('0');
+  });
+
+  it('does not navigate when no answer selected', () => {
+    component.nextPage();
+    expect(router.navigate).not.toHaveBeenCalled();
+  });
+
+  it('navigates after selecting an answer', () => {
+    component.selectAnswer('yes');
+    component.nextPage();
+    expect(router.navigate).toHaveBeenCalledWith(['/dementia-prediction']);
   });
 });

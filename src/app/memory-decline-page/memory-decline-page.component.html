@@ -7,4 +7,4 @@
     <button class="whether-btn" [class.active]="selectedAnswer==='no'" (click)="selectAnswer('no')">否</button>
   </div>
 </div>
-<button class="elder-btn" (click)="nextPage()">下一頁</button>
+<button class="next-btn" [disabled]="!selectedAnswer" (click)="nextPage()">下一頁</button>
