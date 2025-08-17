@@ -17,6 +17,18 @@ export class DementiaPredictionPageComponent implements OnInit {
   payload: PredictionPayload | null = null;
   result: PredictionResult | null = null;
 
+  get predictionMessage(): string {
+    if (!this.result) return '';
+    return this.result.prediction === 0
+      ? '預測結果：2年內無失智症風險'
+      : '預測結果：2年內可能罹患失智症，建議做進一步檢查';
+  }
+
+  get probabilityPercentage(): string {
+    if (!this.result) return '';
+    return `${(this.result.probability * 100).toFixed(2)}%`;
+  }
+
   constructor(
     private loginService: LoginService,
     private router: Router,
