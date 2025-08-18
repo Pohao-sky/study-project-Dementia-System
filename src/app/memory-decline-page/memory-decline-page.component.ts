@@ -14,11 +14,16 @@ import { Router } from '@angular/router';
 export class MemoryDeclinePageComponent implements OnInit {
   private readonly storageKey = 'memoryDeclineAnswer';
   user: User | null = null;
+
+  // 作答狀態
   selectedAnswer: 'yes' | 'no' | null = null;
+
+  // 未作答警告顯示控制
+  showIncompleteWarning: boolean = false;
 
   constructor(private loginService: LoginService, private router: Router) {}
 
-  ngOnInit() {
+  ngOnInit(): void {
     this.loadUser();
     if (!this.user) {
       this.router.navigate(['/login']);
@@ -27,13 +32,32 @@ export class MemoryDeclinePageComponent implements OnInit {
     this.restoreAnswer();
   }
 
-  selectAnswer(answer: 'yes' | 'no') {
-    this.selectedAnswer = answer;
-    const value = answer === 'yes' ? '1' : '0';
-    localStorage.setItem(this.storageKey, value);
+  /** 是否可前往下一頁：唯讀屬性，直接回傳布林 */
+  get canProceedToNextPage(): boolean {
+    return this.selectedAnswer !== null;
   }
 
-  private loadUser() {
+  /** 選擇答案：更新狀態與儲存，同時關閉未作答警告 */
+  selectAnswer(answer: 'yes' | 'no'): void {
+    this.selectedAnswer = answer;
+    localStorage.setItem(this.storageKey, answer === 'yes' ? '1' : '0');
+    this.showIncompleteWarning = false;
+  }
+
+  /** 點擊下一頁：未作答→警告並早退；已作答→導頁 */
+  onNextButtonClick(): void {
+    if (!this.canProceedToNextPage) {
+      alert('請先選擇「是」或「否」');
+      this.showIncompleteWarning = true; // 顯示頁內提示
+      return; // Early Return
+    }
+    this.showIncompleteWarning = false; // 清除殘留訊息
+    this.router.navigate(['/dementia-prediction']);
+  }
+
+  // ---- 私有輔助 ----
+
+  private loadUser(): void {
     if (this.loginService.userInfo) {
       this.user = this.loginService.userInfo;
       return;
@@ -42,7 +66,7 @@ export class MemoryDeclinePageComponent implements OnInit {
     if (userStr) this.user = JSON.parse(userStr);
   }
 
-  private restoreAnswer() {
+  private restoreAnswer(): void {
     const saved = localStorage.getItem(this.storageKey);
     if (saved === '1') {
       this.selectedAnswer = 'yes';
@@ -51,10 +75,5 @@ export class MemoryDeclinePageComponent implements OnInit {
     if (saved === '0') {
       this.selectedAnswer = 'no';
     }
-  }
-
-  nextPage() {
-    if (!this.selectedAnswer) return;
-    this.router.navigate(['/dementia-prediction']);
   }
 }

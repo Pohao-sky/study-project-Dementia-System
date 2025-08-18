@@ -65,6 +65,8 @@ export class TrailMakingTestBPageComponent {
     "3. 按「開始連線測驗」後開始計時，全部完成即顯示用時與錯誤數。\n\n" +
     "請點擊下方「開始連線測驗」按鈕開始！";
 
+  showIncompleteWarning: boolean = false;
+
   constructor(
     private loginService: LoginService,
     private trailMakingService: TrailMakingTestBService,
@@ -284,7 +286,12 @@ export class TrailMakingTestBPageComponent {
   }
 
   nextPage() {
-    if (!this.canProceed) return;
+    if (!this.canProceed) {
+      alert('請先完成測驗');
+      this.showIncompleteWarning = true; // 顯示下方的視覺提示
+      return; // Early Return
+    }
+    this.showIncompleteWarning = false; // 清理提示狀態
     this.router.navigate(['/memory-decline']);
   }
 
@@ -294,5 +301,6 @@ export class TrailMakingTestBPageComponent {
     const result = JSON.parse(saved);
     this.timerDisplay = result.duration.toFixed(1);
     this.canProceed = true;
+    this.showIncompleteWarning = false; // 若有歷史結果，進入時就不顯示警告
   }
 }

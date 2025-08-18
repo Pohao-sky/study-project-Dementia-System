@@ -12,7 +12,13 @@
     <button class="tmt-start-btn" (click)="start()">開始連線測驗</button>
   }
 </div>
-<button class="next-btn" (click)="nextPage()" [disabled]="!canProceed">下一頁</button>
+<button
+  class="next-btn"
+  (click)="nextPage()"
+  [class.next-btn--disabled]="!canProceed"
+  [attr.aria-disabled]="!canProceed">
+  下一頁
+</button>
 
 @if (showRules) {
   <div class="tmt-popup-overlay">
