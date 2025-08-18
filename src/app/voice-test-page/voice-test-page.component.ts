@@ -11,31 +11,49 @@ import { Router } from '@angular/router';
   styleUrl: './voice-test-page.component.scss'
 })
 export class VoiceTestPageComponent {
-  animalDone = false;
-  vegetableDone = false;
-  animalResult: any = null;
-  vegetableResult: any = null;
+  animalDone: boolean = false;
+  vegetableDone: boolean = false;
+  animalResult: unknown = null;
+  vegetableResult: unknown = null;
+
+  showIncompleteWarning: boolean = false;
 
   constructor(private router: Router) {}
 
-  onAnimalTestComplete(result: any) {
-    this.animalResult = result;
-    this.animalDone = true;
-  }
-
-  onVegetableTestComplete(result: any) {
-    this.vegetableResult = result;
-    this.vegetableDone = true;
-  }
-
-  canNext(): boolean {
+  /** 用唯讀屬性避免重複呼叫造成的狀態不一致 */
+  get canProceedToNextPage(): boolean {
     return this.animalDone && this.vegetableDone;
   }
 
-  nextPage() {
-    // 語詞流暢性測驗完成後導頁至 TMT-A
-    if (this.canNext()) {
-      this.router.navigate(['/trail-making-test-a']);
+  onAnimalTestComplete(result: unknown): void {
+    this.animalResult = result;
+    this.animalDone = true;
+    this.hideWarningIfReady();
+  }
+
+  onVegetableTestComplete(result: unknown): void {
+    this.vegetableResult = result;
+    this.vegetableDone = true;
+    this.hideWarningIfReady();
+  }
+
+  /** 只做一件事：若已達成條件，就把警告關掉 */
+  private hideWarningIfReady(): void {
+    if (this.canProceedToNextPage) {
+      this.showIncompleteWarning = false;
     }
+  }
+
+  /** 按鈕點擊的唯一入口，使用 Early Return */
+  onNextButtonClick(): void {
+    if (!this.canProceedToNextPage) {
+      if (!this.showIncompleteWarning) {
+        alert('請先完成測驗');
+      }
+      this.showIncompleteWarning = true;
+      return;
+    }
+    this.showIncompleteWarning = false;
+    this.router.navigate(['/trail-making-test-a']);
   }
 }
