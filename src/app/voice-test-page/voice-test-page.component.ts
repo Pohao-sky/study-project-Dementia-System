@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { VerbalFluencyTestComponent } from '../verbal-fluency-test/verbal-fluency-test.component';
 import { Router } from '@angular/router';
 
@@ -10,15 +10,22 @@ import { Router } from '@angular/router';
   templateUrl: './voice-test-page.component.html',
   styleUrl: './voice-test-page.component.scss'
 })
-export class VoiceTestPageComponent {
-  animalDone: boolean = false;
-  vegetableDone: boolean = false;
+export class VoiceTestPageComponent implements OnInit {
+  animalDone = false;
+  vegetableDone = false;
   animalResult: unknown = null;
   vegetableResult: unknown = null;
 
-  showIncompleteWarning: boolean = false;
+  showIncompleteWarning = false;
+
+  private readonly animalStorageKey = 'verbalFluencyResult_animals';
+  private readonly vegetableStorageKey = 'verbalFluencyResult_vegetables';
 
   constructor(private router: Router) {}
+
+  ngOnInit(): void {
+    this.restoreCompletionState();
+  }
 
   /** 用唯讀屬性避免重複呼叫造成的狀態不一致 */
   get canProceedToNextPage(): boolean {
@@ -34,6 +41,23 @@ export class VoiceTestPageComponent {
   onVegetableTestComplete(result: unknown): void {
     this.vegetableResult = result;
     this.vegetableDone = true;
+    this.hideWarningIfReady();
+  }
+
+  /** 從 localStorage 讀取完成狀態 */
+  private restoreCompletionState(): void {
+    const animalSaved = localStorage.getItem(this.animalStorageKey);
+    if (animalSaved) {
+      this.animalResult = JSON.parse(animalSaved);
+      this.animalDone = true;
+    }
+
+    const vegetableSaved = localStorage.getItem(this.vegetableStorageKey);
+    if (vegetableSaved) {
+      this.vegetableResult = JSON.parse(vegetableSaved);
+      this.vegetableDone = true;
+    }
+
     this.hideWarningIfReady();
   }
 
