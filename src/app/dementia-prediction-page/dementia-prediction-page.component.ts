@@ -64,14 +64,14 @@ export class DementiaPredictionPageComponent implements OnInit {
   private collectPayload(): PredictionPayload {
     return {
       CDR_SUM: this.user?.CDR_SUM ?? 0,
-      CDR_MEMORY: this.user?.MEMORY ?? 0,
-      CDR_GLOB: this.user?.CDRGLOB ?? 0,
       MMSE: this.user?.MMSE_Score ?? 0,
-      ANIMAL_COUNT: this.readTotal('verbalFluencyResult_animals'),
+      MEMORY_DECLINE: Number(localStorage.getItem('memoryDeclineAnswer') ?? 0),
       VEGETABLE_COUNT: this.readTotal('verbalFluencyResult_vegetables'),
+      ANIMAL_COUNT: this.readTotal('verbalFluencyResult_animals'),
       TRAIL_A_SECONDS: this.readDuration('trailMakingTestAResult'),
       TRAIL_B_SECONDS: this.readDuration('trailMakingTestBResult'),
-      MEMORY_DECLINE: Number(localStorage.getItem('memoryDeclineAnswer') ?? 0)
+      CDR_MEMORY: this.user?.MEMORY ?? 0,
+      CDR_GLOB: this.user?.CDRGLOB ?? 0,
     };
   }
 
