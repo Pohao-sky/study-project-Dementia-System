@@ -25,6 +25,14 @@ export class PredictionService {
   constructor(private http: HttpClient, private loginService: LoginService) {}
 
   predict(payload: PredictionPayload): Observable<PredictionResult> {
-    return this.http.post<PredictionResult>(`${this.loginService.apiUrl}/predict`, payload);
+    const token = localStorage.getItem('token');
+    const headers: Record<string, string> = token
+      ? { Authorization: `Bearer ${token}` }
+      : {};
+    return this.http.post<PredictionResult>(
+      `${this.loginService.apiUrl}/predict`,
+      payload,
+      { headers }
+    );
   }
 }

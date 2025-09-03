@@ -545,6 +545,7 @@ class TrailMakingTestBResultApi(Resource):
 # =========================
 @api.route('/predict')
 class Predict(Resource):
+    @jwt_required()
     def post(self):
         # Content-Type 檢查
         if not request.is_json:
