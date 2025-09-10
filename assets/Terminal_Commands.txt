@@ -1,7 +1,7 @@
-後端資料夾:cd C:\study-project-Dementia-System\backend
+後端資料夾:cd C:\study-project-Dementia-System
 
 
-flask執行:python python_run.py
+flask執行:python backend\python_run.py
 
 
 angular:ng serve --open
