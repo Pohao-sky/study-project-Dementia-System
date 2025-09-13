@@ -2,8 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { TrailMakingTestBPageComponent } from './trail-making-test-b-page.component';
 import { Router } from '@angular/router';
 import { LoginService } from '../service/login.service';
-import { TrailMakingTestBService } from '../service/trail-making-test-b.service';
-import { of } from 'rxjs';
+
 
 describe('TrailMakingTestBPageComponent', () => {
   let component: TrailMakingTestBPageComponent;
@@ -17,7 +16,6 @@ describe('TrailMakingTestBPageComponent', () => {
       providers: [
         { provide: Router, useValue: jasmine.createSpyObj('Router', ['navigate']) },
         { provide: LoginService, useValue: { userInfo: {} } },
-        { provide: TrailMakingTestBService, useValue: { submitResult: () => of({}) } }
       ]
     }).compileComponents();
 

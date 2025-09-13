@@ -1,6 +1,5 @@
 import { CommonModule } from '@angular/common';
 import { Component, ElementRef, ViewChild } from '@angular/core';
-import { TrailMakingTestBService } from '../service/trail-making-test-b.service';
 import { Router } from '@angular/router';
 import { LoginService } from '../service/login.service';
 import { User } from '../models/user';
@@ -69,7 +68,6 @@ export class TrailMakingTestBPageComponent {
 
   constructor(
     private loginService: LoginService,
-    private trailMakingService: TrailMakingTestBService,
     private router: Router
   ) {}
 
@@ -271,7 +269,6 @@ export class TrailMakingTestBPageComponent {
         const duration = (this.endTime - (this.startTime || 0)) / 1000;
         const result = { duration, errors: this.errorCount };
         alert(`完成！總花費時間：${duration.toFixed(1)} 秒`);
-        this.trailMakingService.submitResult(result).subscribe();
         localStorage.setItem(this.storageKey, JSON.stringify(result));
         this.canProceed = true;
       }
