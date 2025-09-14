@@ -1,8 +1,10 @@
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, Output, NgZone, ChangeDetectorRef } from '@angular/core';
 import { Router } from '@angular/router';
-import { LoginService } from '../service/login.service';
-import { User } from '../models/user';
+import { User } from '../../models/user';
+import { LoginService } from '../../service/login.service';
+import { VerbalFluencyResult } from '../../models/verbal-fluency-result';
+
 
 
 
@@ -34,7 +36,7 @@ export class VerbalFluencyTestComponent {
 
     const savedResult = localStorage.getItem(this.storageKey);
     if (savedResult) {
-      this.analyzeResult = JSON.parse(savedResult);
+      this.analyzeResult = JSON.parse(savedResult) as VerbalFluencyResult;
       this.isDone = true;
     }
   }
@@ -42,22 +44,22 @@ export class VerbalFluencyTestComponent {
   @Input() type: 'animals' | 'vegetables' = 'animals';
   @Input() title: string = '語詞流暢性測驗';
   @Input() disabled = false;
-  @Output() testComplete = new EventEmitter<any>();
+  @Output() testComplete = new EventEmitter<VerbalFluencyResult>();
 
   private get storageKey(): string {
     return `verbalFluencyResult_${this.type}`;
   }
 
   countdownSeconds = 60;
-  countdownTimer: any = null;
+  countdownTimer: ReturnType<typeof setInterval> | null = null;
   isRecording = false;
   isDone = false;
-  analyzeResult: any = null;
+  analyzeResult: VerbalFluencyResult | null = null;
 
   // 錄音與分段
   private audioStream: MediaStream | null = null;
   private mediaRecorder: MediaRecorder | null = null;
-  private chunkRotationTimer: any = null;
+  private chunkRotationTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly chunkLengthMs = 20000; // 每 20 秒一段
 
   currentChunkIndex = 0;
@@ -145,7 +147,7 @@ export class VerbalFluencyTestComponent {
   private pickPreferredMimeType(): string {
     const candidates = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus'];
     for (const mime of candidates) {
-      if ((window as any).MediaRecorder && MediaRecorder.isTypeSupported(mime)) return mime;
+      if ('MediaRecorder' in window && MediaRecorder.isTypeSupported(mime)) return mime;
     }
     return ''; // 使用瀏覽器預設（部分瀏覽器仍可用）
   }
@@ -218,15 +220,16 @@ export class VerbalFluencyTestComponent {
         body: formData,
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
-      const result = await response.json();
-      if (result.error) throw new Error(result.error);
+      const data = await response.json();
+      if ((data as { error?: string }).error) throw new Error((data as { error: string }).error);
+      const result = data as VerbalFluencyResult;
 
       this.analyzeResult = result;
       this.isDone = true;
       localStorage.setItem(this.storageKey, JSON.stringify(result));
       this.testComplete.emit(result);
-    } catch (error: any) {
-      alert('語音分析失敗：' + (error?.message ?? 'unknown'));
+    } catch (error: unknown) {
+      alert('語音分析失敗：' + ((error as Error)?.message ?? 'unknown'));
     } finally {
       this.mediaRecorder = null;
     }
@@ -249,7 +252,7 @@ export class VerbalFluencyTestComponent {
     localStorage.removeItem(this.storageKey);
   }
 
-  getKeys(object: any): string[] {
+  getKeys(object: Record<string, unknown> | null): string[] {
     if (!object) return [];
     return Object.keys(object);
   }
