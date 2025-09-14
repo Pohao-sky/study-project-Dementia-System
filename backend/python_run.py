@@ -123,9 +123,6 @@ vegetables: Set[str] = {
     # 香草/香料
     "九層塔", "迷迭香", "香椿", "金針花","薄荷",
 
-    #　中藥
-    "蓮子","薏仁","當歸","枸杞","甘菊","人參",
-
     # 其他
     "四季豆", "秋葵", "韭菜", "芹菜", "胡瓜", "球芽甘藍", "大頭菜", "娃娃菜", "慈菇", "荸薺", "馬蘭頭", "蕨菜",
 }
@@ -375,6 +372,7 @@ def hexdump_prefix(b: bytes, n: int = 8) -> str:
 # ---- 在 /speech_upload_chunk 內部調整 ----
 @api.route('/speech_upload_chunk')
 class SpeechUploadChunk(Resource):
+    @jwt_required()
     def post(self):
         recording_id = request.form['recording_id']
         chunk_index = int(request.form['chunk_index'])
@@ -418,6 +416,7 @@ class SpeechUploadChunk(Resource):
 # =========================
 @api.route("/speech_test_finalize")
 class SpeechTestFinalize(Resource):
+    @jwt_required()
     def post(self):
         recording_id = request.form["recording_id"]
         test_type = request.form.get("type")

@@ -181,7 +181,12 @@ export class VerbalFluencyTestComponent {
 
     try {
       this.pendingUploads++;
-      await fetch('http://localhost:3000/speech_upload_chunk', { method: 'POST', body: formData });
+      const token = localStorage.getItem('token');
+      await fetch('http://localhost:3000/speech_upload_chunk', {
+        method: 'POST',
+        body: formData,
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
     } catch {
       console.warn('上傳語音片段失敗');
     } finally {
@@ -205,7 +210,12 @@ export class VerbalFluencyTestComponent {
     formData.append('type', this.type);
 
     try {
-      const response = await fetch('http://localhost:3000/speech_test_finalize', { method: 'POST', body: formData });
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:3000/speech_test_finalize', {
+        method: 'POST',
+        body: formData,
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       const result = await response.json();
       if (result.error) throw new Error(result.error);
 
