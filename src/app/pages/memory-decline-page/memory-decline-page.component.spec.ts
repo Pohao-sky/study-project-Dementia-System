@@ -6,7 +6,7 @@ import { LoginService } from '../../service/login.service';
 describe('MemoryDeclinePageComponent', () => {
   let component: MemoryDeclinePageComponent;
   let fixture: ComponentFixture<MemoryDeclinePageComponent>;
-  let router: any;
+  let router: Router;
 
   beforeEach(async () => {
     localStorage.removeItem('memoryDeclineAnswer');
@@ -20,6 +20,7 @@ describe('MemoryDeclinePageComponent', () => {
 
     fixture = TestBed.createComponent(MemoryDeclinePageComponent);
     component = fixture.componentInstance;
+    router = TestBed.inject(Router);
     fixture.detectChanges();
   });
 

@@ -3,17 +3,7 @@ import { Component, ElementRef, ViewChild } from '@angular/core';
 import { Router } from '@angular/router';
 import { LoginService } from '../../service/login.service';
 import { User } from '../../models/user';
-
-interface TrailMakingNode {
-  type: 'num' | 'char';
-  label: string;
-  x: number;
-  y: number;
-}
-interface TrailMakingLine {
-  from: TrailMakingNode;
-  to: TrailMakingNode;
-}
+import { TrailMakingBLine, TrailMakingBNode } from '../../models/trail-making';
 
 @Component({
   selector: 'app-trail-making-test-b-page',
@@ -42,15 +32,15 @@ export class TrailMakingTestBPageComponent {
     {type:'num',label:'13'}
   ];
 
-  nodes: TrailMakingNode[] = [];
-  lines: TrailMakingLine[] = [];
+  nodes: TrailMakingBNode[] = [];
+  lines: TrailMakingBLine[] = [];
   dragging = false;
-  lastNode: TrailMakingNode | null = null;
+  lastNode: TrailMakingBNode | null = null;
   currentPath: number[] = [];
 
   startTime: number | null = null;
   endTime: number | null = null;
-  timerInterval: any = null;
+  timerInterval: ReturnType<typeof setInterval> | null = null;
   errorCount = 0;
   started = false;
   timerDisplay = '0.0';
@@ -150,7 +140,7 @@ export class TrailMakingTestBPageComponent {
     this.nodes = [];
     const coordinates = this.randomCoordinates(this.orderList.length);
     for (let i = 0; i < this.orderList.length; i++) {
-      const node = { ...this.orderList[i], x: coordinates[i].x, y: coordinates[i].y } as TrailMakingNode;
+      const node = { ...this.orderList[i], x: coordinates[i].x, y: coordinates[i].y } as TrailMakingBNode;
       this.nodes.push(node);
     }
   }
@@ -211,14 +201,14 @@ export class TrailMakingTestBPageComponent {
     this.canvasContext.restore();
   }
 
-  private isNodeConnected(node: TrailMakingNode): boolean {
+  private isNodeConnected(node: TrailMakingBNode): boolean {
     return (
       (node.type === 'num' && node.label === '1') ||
       this.lines.some(line => line.from === node || line.to === node)
     );
   }
 
-  private getNodeAt(x: number, y: number): TrailMakingNode | null {
+  private getNodeAt(x: number, y: number): TrailMakingBNode | null {
     return this.nodes.find(node => (node.x - x) ** 2 + (node.y - y) ** 2 <= this.nodeRadius ** 2) || null;
   }
 
@@ -265,7 +255,7 @@ export class TrailMakingTestBPageComponent {
         this.dragging = false;
         this.endTime = Date.now();
         this.updateTimerDisplay();
-        clearInterval(this.timerInterval);
+          if (this.timerInterval !== null) clearInterval(this.timerInterval);
         const duration = (this.endTime - (this.startTime || 0)) / 1000;
         const result = { duration, errors: this.errorCount };
         alert(`完成！總花費時間：${duration.toFixed(1)} 秒`);

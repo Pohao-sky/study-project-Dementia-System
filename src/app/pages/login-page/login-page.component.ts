@@ -2,7 +2,8 @@ import { Component } from '@angular/core';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { LoginService } from '../../service/login.service';
+import { LoginResponse, LoginService } from '../../service/login.service';
+import { HttpErrorResponse } from '@angular/common/http';
 
 @Component({
   selector: 'app-login-page',
@@ -32,13 +33,13 @@ export class LoginPageComponent {
 
     const { username, password } = this.loginForm.value;
       this.api.login(username, password).subscribe({
-        next: (res: any) => {
+        next: (res: LoginResponse) => {
           localStorage.setItem('token', res.token);
           localStorage.setItem('userInfo', JSON.stringify(res.user));
           this.api.userInfo = res.user;
           this.router.navigate(['/user-info']);
         },
-        error: (err: any) => {
+        error: (err: HttpErrorResponse) => {
           this.errorMsg = err.error?.error || '帳號或密碼錯誤';
         }
       });

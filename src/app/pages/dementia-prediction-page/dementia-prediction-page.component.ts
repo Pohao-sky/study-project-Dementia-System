@@ -4,6 +4,7 @@ import { User } from '../../models/user';
 import { LoginService } from '../../service/login.service';
 import { Router } from '@angular/router';
 import { PredictionPayload, PredictionResult, PredictionService } from '../../service/prediction.service';
+import { HttpErrorResponse } from '@angular/common/http';
 
 @Component({
   selector: 'app-dementia-prediction-page',
@@ -48,7 +49,7 @@ export class DementiaPredictionPageComponent implements OnInit {
     if (!this.payload) return;
     this.predictionService.predict(this.payload).subscribe({
       next: (res: PredictionResult) => this.result = res,
-      error: (err: any) => alert(err.error?.error ?? err.message)
+      error: (err: HttpErrorResponse) => alert(err.error?.error ?? err.message)
     });
   }
 

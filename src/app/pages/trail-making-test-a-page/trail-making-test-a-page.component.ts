@@ -3,17 +3,7 @@ import { Component, ElementRef, ViewChild } from '@angular/core';
 import { Router } from '@angular/router';
 import { LoginService } from '../../service/login.service';
 import { User } from '../../models/user';
-
-
-interface NodePoint {
-  label: number;
-  x: number;
-  y: number;
-}
-interface LineConnection {
-  from: NodePoint;
-  to: NodePoint;
-}
+import { TrailMakingALine, TrailMakingANode } from '../../models/trail-making';
 
 @Component({
   selector: 'app-trail-making-test-a-page',
@@ -27,15 +17,15 @@ export class TrailMakingTestAPageComponent {
 
   private readonly totalNodeCount = 24;
   private readonly nodeRadius = 22;
-  nodes: NodePoint[] = [];
-  lines: LineConnection[] = [];
+  nodes: TrailMakingANode[] = [];
+  lines: TrailMakingALine[] = [];
   dragging = false;
-  lastNode: NodePoint | null = null;
+  lastNode: TrailMakingANode | null = null;
   currentPath: number[] = [];
 
   startTime: number | null = null;
   endTime: number | null = null;
-  timerInterval: any = null;
+  timerInterval: ReturnType<typeof setInterval> | null = null;
   errorCount = 0;
   started = false;
   timerDisplay = '0.0';
@@ -118,8 +108,8 @@ export class TrailMakingTestAPageComponent {
     }
   }
 
-  private randomNodes(count: number): NodePoint[] {
-    const points: NodePoint[] = [];
+  private randomNodes(count: number): TrailMakingANode[] {
+    const points: TrailMakingANode[] = [];
     let attempts = 0;
     const canvas = this.canvasRef.nativeElement;
     while (points.length < count && attempts < 3000) {
@@ -199,11 +189,11 @@ export class TrailMakingTestAPageComponent {
     this.canvasContext.restore();
   }
 
-  private isNodeConnected(node: NodePoint): boolean {
+  private isNodeConnected(node: TrailMakingANode): boolean {
     return node.label === 1 || this.lines.some(line => line.from === node || line.to === node);
   }
 
-  private getNodeAt(x: number, y: number): NodePoint | null {
+  private getNodeAt(x: number, y: number): TrailMakingANode | null {
     for (const node of this.nodes) {
       if ((node.x - x) ** 2 + (node.y - y) ** 2 <= this.nodeRadius * this.nodeRadius) return node;
     }
@@ -250,7 +240,7 @@ export class TrailMakingTestAPageComponent {
         this.dragging = false;
         this.endTime = Date.now();
         this.updateTimerDisplay();
-        clearInterval(this.timerInterval);
+          if (this.timerInterval !== null) clearInterval(this.timerInterval);
         const duration = (this.endTime - (this.startTime || 0)) / 1000;
         const result = { duration, errors: this.errorCount };
         alert(`完成！總花費時間：${duration.toFixed(1)} 秒`);

@@ -1,8 +1,8 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
-
 import { Router } from '@angular/router';
-import { VerbalFluencyTestComponent } from '../../verbal-fluency-test/verbal-fluency-test.component';
+import { VerbalFluencyResult } from '../../models/verbal-fluency-result';
+import { VerbalFluencyTestComponent } from '../../components/verbal-fluency-test/verbal-fluency-test.component';
 
 @Component({
   selector: 'app-voice-test-page',
@@ -14,8 +14,8 @@ import { VerbalFluencyTestComponent } from '../../verbal-fluency-test/verbal-flu
 export class VoiceTestPageComponent implements OnInit {
   animalDone = false;
   vegetableDone = false;
-  animalResult: unknown = null;
-  vegetableResult: unknown = null;
+  animalResult: VerbalFluencyResult | null = null;
+  vegetableResult: VerbalFluencyResult | null = null;
 
   showIncompleteWarning = false;
 
@@ -33,13 +33,13 @@ export class VoiceTestPageComponent implements OnInit {
     return this.animalDone && this.vegetableDone;
   }
 
-  onAnimalTestComplete(result: unknown): void {
+  onAnimalTestComplete(result: VerbalFluencyResult): void {
     this.animalResult = result;
     this.animalDone = true;
     this.hideWarningIfReady();
   }
 
-  onVegetableTestComplete(result: unknown): void {
+  onVegetableTestComplete(result: VerbalFluencyResult): void {
     this.vegetableResult = result;
     this.vegetableDone = true;
     this.hideWarningIfReady();
@@ -49,13 +49,13 @@ export class VoiceTestPageComponent implements OnInit {
   private restoreCompletionState(): void {
     const animalSaved = localStorage.getItem(this.animalStorageKey);
     if (animalSaved) {
-      this.animalResult = JSON.parse(animalSaved);
+      this.animalResult = JSON.parse(animalSaved) as VerbalFluencyResult;
       this.animalDone = true;
     }
 
     const vegetableSaved = localStorage.getItem(this.vegetableStorageKey);
     if (vegetableSaved) {
-      this.vegetableResult = JSON.parse(vegetableSaved);
+      this.vegetableResult = JSON.parse(vegetableSaved) as VerbalFluencyResult;
       this.vegetableDone = true;
     }
 

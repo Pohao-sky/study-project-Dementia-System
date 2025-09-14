@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { TrailMakingTestBPageComponent } from './trail-making-test-b-page.component';
 import { Router } from '@angular/router';
 import { LoginService } from '../../service/login.service';
+import { TrailMakingBLine, TrailMakingBNode } from '../../models/trail-making';
 
 
 describe('TrailMakingTestBPageComponent', () => {
@@ -30,13 +31,15 @@ describe('TrailMakingTestBPageComponent', () => {
   });
 
   it('should determine connected nodes correctly', () => {
-    const node1 = { type: 'num', label: '1', x: 0, y: 0 } as any;
-    expect((component as any).isNodeConnected(node1)).toBeTrue();
-    const nodeA = { type: 'char', label: 'A', x: 0, y: 0 } as any;
-    component.lines = [{ from: node1, to: nodeA } as any];
-    expect((component as any).isNodeConnected(nodeA)).toBeTrue();
-    const node2 = { type: 'num', label: '2', x: 0, y: 0 } as any;
-    expect((component as any).isNodeConnected(node2)).toBeFalse();
+    const node1: TrailMakingBNode = { type: 'num', label: '1', x: 0, y: 0 };
+    const comp = component as unknown as { isNodeConnected(node: TrailMakingBNode): boolean };
+    expect(comp.isNodeConnected(node1)).toBeTrue();
+    const nodeA: TrailMakingBNode = { type: 'char', label: 'A', x: 0, y: 0 };
+    const line: TrailMakingBLine = { from: node1, to: nodeA };
+    component.lines = [line];
+    expect(comp.isNodeConnected(nodeA)).toBeTrue();
+    const node2: TrailMakingBNode = { type: 'num', label: '2', x: 0, y: 0 };
+    expect(comp.isNodeConnected(node2)).toBeFalse();
   });
 
   it('should block navigation until test is finished', () => {
