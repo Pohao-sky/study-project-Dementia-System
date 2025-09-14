@@ -2,7 +2,7 @@ import { Component } from '@angular/core';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { LoginService } from '../service/login.service';
+import { LoginService } from '../../service/login.service';
 
 @Component({
   selector: 'app-login-page',
@@ -31,16 +31,16 @@ export class LoginPageComponent {
     if (this.loginForm.invalid) return;
 
     const { username, password } = this.loginForm.value;
-    this.api.login(username, password).subscribe({
-      next: (res: any) => {
-        localStorage.setItem('token', res.token);
-        localStorage.setItem('userInfo', JSON.stringify(res.user));
-        this.api.userInfo = res.user;
-        this.router.navigate(['/user-info']);
-      },
-      error: (err) => {
-        this.errorMsg = err.error?.error || '帳號或密碼錯誤';
-      }
-    });
+      this.api.login(username, password).subscribe({
+        next: (res: any) => {
+          localStorage.setItem('token', res.token);
+          localStorage.setItem('userInfo', JSON.stringify(res.user));
+          this.api.userInfo = res.user;
+          this.router.navigate(['/user-info']);
+        },
+        error: (err: any) => {
+          this.errorMsg = err.error?.error || '帳號或密碼錯誤';
+        }
+      });
+    }
   }
-}

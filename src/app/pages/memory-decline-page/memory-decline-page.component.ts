@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
-import { User } from '../models/user';
-import { LoginService } from '../service/login.service';
+import { User } from '../../models/user';
+import { LoginService } from '../../service/login.service';
 import { Router } from '@angular/router';
 
 @Component({

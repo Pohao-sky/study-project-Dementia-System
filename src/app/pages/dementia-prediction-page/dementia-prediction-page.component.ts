@@ -1,9 +1,9 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
-import { User } from '../models/user';
-import { LoginService } from '../service/login.service';
+import { User } from '../../models/user';
+import { LoginService } from '../../service/login.service';
 import { Router } from '@angular/router';
-import { PredictionPayload, PredictionResult, PredictionService } from '../service/prediction.service';
+import { PredictionPayload, PredictionResult, PredictionService } from '../../service/prediction.service';
 
 @Component({
   selector: 'app-dementia-prediction-page',
@@ -47,8 +47,8 @@ export class DementiaPredictionPageComponent implements OnInit {
   predict(): void {
     if (!this.payload) return;
     this.predictionService.predict(this.payload).subscribe({
-      next: res => this.result = res,
-      error: err => alert(err.error?.error ?? err.message)
+      next: (res: PredictionResult) => this.result = res,
+      error: (err: any) => alert(err.error?.error ?? err.message)
     });
   }
 

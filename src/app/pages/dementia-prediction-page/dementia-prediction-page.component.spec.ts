@@ -1,9 +1,9 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { DementiaPredictionPageComponent } from './dementia-prediction-page.component';
-import { LoginService } from '../service/login.service';
+import { LoginService } from '../../service/login.service';
 import { Router } from '@angular/router';
-import { PredictionService } from '../service/prediction.service';
+import { PredictionService } from '../../service/prediction.service';
 import { of } from 'rxjs';
 
 describe('DementiaPredictionPageComponent', () => {

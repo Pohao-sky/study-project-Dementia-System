@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { MemoryDeclinePageComponent } from './memory-decline-page.component';
-import { LoginService } from '../service/login.service';
+import { LoginService } from '../../service/login.service';
 
 describe('MemoryDeclinePageComponent', () => {
   let component: MemoryDeclinePageComponent;
@@ -38,13 +38,13 @@ describe('MemoryDeclinePageComponent', () => {
   });
 
   it('does not navigate when no answer selected', () => {
-    component.nextPage();
+    component.onNextButtonClick();
     expect(router.navigate).not.toHaveBeenCalled();
   });
 
   it('navigates after selecting an answer', () => {
     component.selectAnswer('yes');
-    component.nextPage();
+    component.onNextButtonClick();
     expect(router.navigate).toHaveBeenCalledWith(['/dementia-prediction']);
   });
 });

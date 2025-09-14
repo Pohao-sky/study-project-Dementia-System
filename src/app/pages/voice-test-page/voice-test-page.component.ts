@@ -1,7 +1,8 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
-import { VerbalFluencyTestComponent } from '../verbal-fluency-test/verbal-fluency-test.component';
+
 import { Router } from '@angular/router';
+import { VerbalFluencyTestComponent } from '../../verbal-fluency-test/verbal-fluency-test.component';
 
 @Component({
   selector: 'app-voice-test-page',

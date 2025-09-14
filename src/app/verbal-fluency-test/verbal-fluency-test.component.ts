@@ -1,8 +1,10 @@
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, Output, NgZone, ChangeDetectorRef } from '@angular/core';
-import { User } from '../models/user';
 import { Router } from '@angular/router';
 import { LoginService } from '../service/login.service';
+import { User } from '../models/user';
+
+
 
 @Component({
   selector: 'app-verbal-fluency-test',

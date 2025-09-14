@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { TrailMakingTestBPageComponent } from './trail-making-test-b-page.component';
 import { Router } from '@angular/router';
-import { LoginService } from '../service/login.service';
+import { LoginService } from '../../service/login.service';
 
 
 describe('TrailMakingTestBPageComponent', () => {
