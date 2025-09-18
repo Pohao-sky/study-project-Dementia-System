@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
-import { Injectable } from '@angular/core';
-import { LoginService } from './login.service';
+import { Inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
+import { API_BASE_URL } from '../tokens/api-base-url.token';
 
 export interface PredictionPayload {
   CDR_SUM: number;
@@ -22,17 +22,9 @@ export interface PredictionResult {
 
 @Injectable({ providedIn: 'root' })
 export class PredictionService {
-  constructor(private http: HttpClient, private loginService: LoginService) {}
+  constructor(private http: HttpClient, @Inject(API_BASE_URL) private apiUrl: string) {}
 
   predict(payload: PredictionPayload): Observable<PredictionResult> {
-    const token = localStorage.getItem('token');
-    const headers: Record<string, string> = token
-      ? { Authorization: `Bearer ${token}` }
-      : {};
-    return this.http.post<PredictionResult>(
-      `${this.loginService.apiUrl}/predict`,
-      payload,
-      { headers }
-    );
+    return this.http.post<PredictionResult>(`${this.apiUrl}/predict`, payload);
   }
 }

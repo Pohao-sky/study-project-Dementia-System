@@ -4,8 +4,7 @@ import { Router } from '@angular/router';
 import { User } from '../../models/user';
 import { LoginService } from '../../service/login.service';
 import { VerbalFluencyResult } from '../../models/verbal-fluency-result';
-
-
+import { SpeechService } from '../../service/speech.service';
 
 
 @Component({
@@ -18,12 +17,15 @@ import { VerbalFluencyResult } from '../../models/verbal-fluency-result';
 export class VerbalFluencyTestComponent {
   user: User | null = null;
 
+
   constructor(
     private loginService: LoginService,
     private router: Router,
     private angularZone: NgZone,
-    private changeDetector: ChangeDetectorRef
+    private changeDetector: ChangeDetectorRef,
+    private speechService: SpeechService
   ) {}
+
 
   ngOnInit() {
     if (this.loginService.userInfo) {
@@ -185,12 +187,7 @@ export class VerbalFluencyTestComponent {
 
     try {
       this.pendingUploads++;
-      const token = localStorage.getItem('token');
-      await fetch('http://localhost:3000/speech_upload_chunk', {
-        method: 'POST',
-        body: formData,
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
+      await this.speechService.uploadChunk(formData);
     } catch {
       console.warn('上傳語音片段失敗');
     } finally {
@@ -214,16 +211,7 @@ export class VerbalFluencyTestComponent {
     formData.append('type', this.type);
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:3000/speech_test_finalize', {
-        method: 'POST',
-        body: formData,
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      const data = await response.json();
-      if ((data as { error?: string }).error) throw new Error((data as { error: string }).error);
-      const result = data as VerbalFluencyResult;
-
+      const result = await this.speechService.finalize(formData);
       this.analyzeResult = result;
       this.isDone = true;
       localStorage.setItem(this.storageKey, JSON.stringify(result));

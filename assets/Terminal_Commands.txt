@@ -4,4 +4,9 @@
 flask執行:python backend\python_run.py
 
 
-angular:ng serve --open
+angular:npm start
+
+
+mkcert -install
+
+mkcert -uninstall

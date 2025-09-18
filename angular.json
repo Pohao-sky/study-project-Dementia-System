@@ -62,6 +62,14 @@
         },
         "serve": {
           "builder": "@angular-devkit/build-angular:dev-server",
+          "options": {
+            "proxyConfig": "proxy.conf.json",
+            "host": "0.0.0.0",
+            "port": 8096,
+            "ssl": true,
+            "sslCert": "certs/localhost+3.pem",
+            "sslKey": "certs/localhost+3-key.pem"
+          },
           "configurations": {
             "production": {
               "buildTarget": "study-project-Dementia-System:build:production"
