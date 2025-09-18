@@ -10,3 +10,9 @@ angular:npm start
 mkcert -install
 
 mkcert -uninstall
+
+
+本地開發mkcert換簽證:
+cd C:\study-project-Dementia-System\certs
+mkcert localhost 127.0.0.1 ::1 192.168.0.12
+改完簽證要去angular.json改檔名
