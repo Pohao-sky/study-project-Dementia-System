@@ -1,27 +1,31 @@
 .user-info-container {
-  max-width: 420px;
-  margin: 36px auto;
+  width: 90%;
+  margin: 20px auto;
   background: #f0f0f0;
-  border-radius: 24px;
-  box-shadow: 0 4px 24px #cccccc;
-  padding: 32px;
+  border-radius: 20px;
+  box-shadow: 0 4px 20px #cccccc;
+  padding: 20px;
 
   h2 {
-    font-size: 25px;
+    font-size: 1.4rem;
+    margin-bottom: 14px;
   }
 
   .user-info-list {
+    display: grid;
+    gap: 10px;
+
     p {
-      font-size: 1.2rem;
-      margin: 14px 0;
+      font-size: 1.35rem;
+      margin: 0;
     }
   }
 
   .next-btn {
     width: 100%;
-    margin-top: 28px;
-    padding: 14px 0;
-    font-size: 1.3rem;
+    margin-top: 20px;
+    padding: 12px 0;
+    font-size: 1.1rem;
     background: #333;
     color: #fff;
     border: none;
@@ -29,5 +33,32 @@
     letter-spacing: 2px;
     cursor: pointer;
   }
-}
 
+  /* 平板 / 桌機模式 */
+  @media (min-width: 601px) {
+    max-width: 500px; /* 原本 450px -> 放大 */
+    max-height: 550px;
+    margin: 8px auto; /* 減少留白 */
+    padding: 28px; /* 內距稍微縮小 */
+
+    h2 {
+      font-size: 1.8rem; /* 放大標題 */
+    }
+
+    .user-info-list {
+      gap: 8px;
+
+      p {
+        font-size: 1.7rem; /* 放大文字 */
+      }
+    }
+
+    .next-btn {
+      min-width: 240px;
+      margin: 26px auto 0;
+      padding: 14px 0;
+      font-size: 1.4rem; /* 放大按鈕字體 */
+      letter-spacing: 3px;
+    }
+  }
+}

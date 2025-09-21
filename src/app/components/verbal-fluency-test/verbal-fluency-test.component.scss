@@ -7,22 +7,23 @@
   padding: 20px;
   text-align: center;
 
+  /* 手機優先：字和按鈕都放大 */
   h3 {
-    font-size: 1.4rem;
-    margin-bottom: 12px;
+    font-size: 1.6rem;
+    margin-bottom: 14px;
     color: #222;
   }
 
   button {
-    font-size: 1.2rem;
-    padding: 10px 30px;
-    margin: 8px 0 18px 0;
-    border-radius: 40px;
+    font-size: 1.4rem;
+    padding: 14px 36px;
+    margin: 12px 0 20px 0;
+    border-radius: 50px;
     background: #333;
     color: #fff;
     border: none;
     cursor: pointer;
-    box-shadow: 0 1px 4px #aaa;
+    box-shadow: 0 2px 6px #aaa;
     transition: background 0.2s;
 
     &:active,
@@ -33,12 +34,36 @@
   }
 
   div {
-    font-size: 1.1rem;
+    font-size: 1.3rem;
     color: #444;
 
     p {
-      margin: 4px 0;
+      margin: 6px 0;
       color: #111;
+    }
+  }
+
+  /* 平板 / 桌機 (≥601px)：字和按鈕縮回較正常比例 */
+  @media (min-width: 601px) {
+    h3 {
+      font-size: 1.4rem;
+      margin-bottom: 12px;
+    }
+
+    button {
+      font-size: 1.2rem;
+      padding: 10px 30px;
+      margin: 8px 0 18px 0;
+      border-radius: 40px;
+      box-shadow: 0 1px 4px #aaa;
+    }
+
+    div {
+      font-size: 1.1rem;
+
+      p {
+        margin: 4px 0;
+      }
     }
   }
 }

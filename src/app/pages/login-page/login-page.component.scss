@@ -1,28 +1,30 @@
 .elder-login-container {
-  max-width: 380px;
-  margin: 60px auto;
+  width: 80%;
+  margin: 16px auto;
   background: #f5f5f5;
-  border-radius: 24px;
-  box-shadow: 0 4px 24px #cccccc;
-  padding: 32px;
+  border-radius: 16px;
+  box-shadow: 0 2px 12px #cccccc;
+  padding: 16px;
 
   .elder-form {
+    display: grid;
+    gap: 12px;
+
     label {
       display: block;
-      margin-top: 18px;
-      font-size: 1.3rem;
+      font-size: 1rem;
       color: #333333;
     }
 
     .elder-input {
-      width: 100%;
-      font-size: 1.3rem;
-      padding: 12px 10px;
-      margin-top: 6px;
-      border-radius: 10px;
+      width: 95%;
+      font-size: 1rem;
+      padding: 10px 8px;
+      border-radius: 8px;
       border: 1.5px solid #999999;
       outline: none;
       background: #fafafa;
+      transition: border-color 0.2s, background 0.2s;
 
       &:focus {
         border-color: #666666;
@@ -32,17 +34,17 @@
 
     .elder-btn {
       width: 100%;
-      margin-top: 30px;
-      padding: 14px 0;
-      font-size: 1.4rem;
+      margin-top: 6px;
+      padding: 12px 0;
+      font-size: 1.1rem;
       font-weight: bold;
       color: #ffffff;
       background: #333333;
       border: none;
-      border-radius: 10px;
+      border-radius: 30px;
       cursor: pointer;
-      letter-spacing: 3px;
-      box-shadow: 0 2px 8px #bbbbbb;
+      letter-spacing: 2px;
+      box-shadow: 0 2px 6px #bbbbbb;
       transition: background 0.2s;
 
       &:active {
@@ -55,10 +57,40 @@
     color: #000000;
     background: #eeeeee;
     border: 1px solid #cccccc;
-    padding: 12px;
-    margin-top: 18px;
-    border-radius: 8px;
-    font-size: 1.1rem;
+    padding: 10px;
+    margin-top: 14px;
+    border-radius: 6px;
+    font-size: 0.9rem;
     text-align: center;
+  }
+
+  /* 平板 / 桌機 */
+  @media (min-width: 601px) {
+    max-width: 420px;
+    margin: 60px auto;
+    padding: 32px;
+
+    .elder-form {
+      gap: 18px;
+
+      label {
+        font-size: 1.3rem;
+      }
+
+      .elder-input {
+        font-size: 1.3rem;
+      }
+
+      .elder-btn {
+        width: auto;
+        justify-self: center;
+        padding: 14px 32px;
+        min-width: 200px;
+      }
+    }
+
+    .elder-error {
+      font-size: 1.1rem;
+    }
   }
 }

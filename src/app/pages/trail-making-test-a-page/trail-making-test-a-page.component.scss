@@ -1,60 +1,71 @@
+/* 手機基準 */
 h2 {
   text-align: center;
-  font-size: 2rem;
-  color: #222; // 原 #e27000 改為深灰
-  margin-top: 14px;
-  letter-spacing: 2px;
+  font-size: 1.75rem;
+  color: #222;
+  margin: 2px 0 10px;
+  letter-spacing: 1.5px;
 }
 
 .tmt-wrapper {
   position: relative;
-  width: 700px;
-  margin: 0 auto;
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto 24px;
 
   .tmt-info {
     display: flex;
-    justify-content: space-between;
-    margin-bottom: 8px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    margin-bottom: 12px;
 
-    span{
-      font-size: 20px;
+    span {
+      font-size: 1.1rem;
     }
   }
 
   canvas {
+    width: 100%;
+    height: auto;
     border: 1px solid #ccc;
     display: block;
+    background: #fff;
   }
 
   .tmt-start-btn {
-    margin-top: 3px;
-    cursor: pointer;
-    padding: 4px 12px;
     display: block;
-    width: 30%;
-    margin: 10px auto 0 auto;
+    width: 90%;
+    margin: 16px auto 0;
+    padding: 12px 18px;
     border-radius: 30px;
-    background: #333;  // 原 #fd8c00 改為深灰
-    color: #fff;       // 保持白字
-    font-size: 1.4rem;
+    background: #333;
+    color: #fff;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: background 0.2s;
+
+    &:hover,
+    &:focus {
+      background: #555;
+      outline: none;
+    }
   }
 }
 
-/* 獨立於 wrapper 之外的按鈕 */
-.next-btn{
+.next-btn {
   display: block;
-  width: 60%;
-  margin: 38px auto 0 auto;
-  margin-bottom: 1%;
-  padding: 18px 0;
-  font-size: 1.4rem;
+  width: 100%;
+  margin: 32px 0 16px;
+  padding: 16px 0;
+  font-size: 1.3rem;
   font-weight: bold;
   background: #333;
   color: #fff;
   border: none;
   border-radius: 12px;
   box-shadow: 0 2px 10px #bbb;
-  letter-spacing: 4px;
+  letter-spacing: 3px;
   cursor: pointer;
   transition: background 0.2s;
 
@@ -65,7 +76,6 @@ h2 {
   }
 }
 
-/* 規則彈窗與其內層 */
 .tmt-popup-overlay {
   position: fixed;
   top: 0;
@@ -83,12 +93,13 @@ h2 {
     border: 2.5px solid #333;
     border-radius: 15px;
     box-shadow: 0 6px 32px rgba(0, 0, 0, 0.25);
-    padding: 32px 32px 16px 32px;
-    font-size: 23px;
+    padding: 20px 20px 16px;
+    font-size: 1.2rem;
     color: #222;
     text-align: center;
-    min-width: 270px;
-    animation: popupIn .2s cubic-bezier(.55, 1.6, .31, 1);
+    min-width: 240px;
+    max-width: min(90vw, 420px);
+    animation: popupIn 0.2s cubic-bezier(.55, 1.6, .31, 1);
     font-weight: bold;
 
     .popup-msg {
@@ -96,17 +107,17 @@ h2 {
     }
 
     button {
-      margin-top: 18px;
-      padding: 8px 28px;
-      border-radius: 7px;
+      margin-top: 16px;
+      padding: 10px 24px;
+      border-radius: 30px;
       border: none;
-      font-size: 17px;
+      font-size: 1.05rem;
       background: #040200;
       color: #fff;
       cursor: pointer;
       font-weight: bold;
       box-shadow: 0 2px 8px #333;
-      transition: background .2s;
+      transition: background 0.2s;
 
       &:hover {
         background: #666;
@@ -115,14 +126,64 @@ h2 {
   }
 }
 
-/* 動畫保留為全域 */
+/* 桌機／平板覆寫（集中於此） */
+@media (min-width: 601px) {
+  h2 {
+    font-size: 2rem;
+    margin: 2px 0 6px 0;  /* 上下縮小，左右保持 0 */
+    letter-spacing: 2px;
+  }
+
+  .tmt-wrapper {
+    width: 700px;        /* 對齊舊版 */
+    max-width: none;
+
+    .tmt-info {
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+
+      span {
+        font-size: 20px; /* 舊版 */
+      }
+    }
+
+    .tmt-start-btn {
+      width: 40%;        /* 舊版 */
+      margin: 10px auto 0;
+      padding: 10px 12px;
+      font-size: 1.4rem;
+    }
+  }
+
+  .next-btn {
+    width: 60%;          /* 舊版 */
+    margin: 38px auto 0;
+    margin-bottom: 1%;
+    padding: 18px 0;
+    font-size: 1.4rem;
+    letter-spacing: 4px;
+    min-width: unset;
+  }
+
+  .tmt-popup-overlay {
+    .tmt-popup {
+      padding: 32px 32px 16px 32px;
+      font-size: 23px;   /* 舊版使用 px */
+      min-width: 270px;
+      max-width: none;
+
+      button {
+        font-size: 22px;
+        padding: 8px 28px;
+      }
+    }
+  }
+}
+
+/* 動畫 */
 @keyframes popupIn {
-  from {
-    transform: scale(.8);
-    opacity: .5;
-  }
-  to {
-    transform: scale(1);
-    opacity: 1;
-  }
+  from { transform: scale(.8); opacity: .5; }
+  to   { transform: scale(1);  opacity: 1;  }
 }
