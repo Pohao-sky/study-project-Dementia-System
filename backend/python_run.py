@@ -15,6 +15,7 @@ from flask_restx import Api, Resource
 from flask_sqlalchemy import SQLAlchemy
 from dotenv import load_dotenv
 from werkzeug.exceptions import HTTPException
+from urllib.parse import quote_plus
 
 from model import predict_with_probability, load_trained_model
 from faster_whisper import WhisperModel
@@ -30,30 +31,54 @@ import traceback
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": ["http://localhost:4200"], "methods": ["GET", "POST"]}})
+CORS(app, resources={r"/*": {"origins": ["http://localhost:8096"], "methods": ["GET", "POST"]}})
 
+# =========================
+# data server link
+# =========================
 current_dir = os.path.dirname(os.path.abspath(__file__))
 config_path = os.path.join(current_dir, "config.json")
-with open(config_path, "r", encoding="utf-8") as file:
-    config = json.load(file)
-
+with open(config_path, "r", encoding="utf-8") as file: config = json.load(file)
 app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY")
 app.config["JWT_ACCESS_TOKEN_EXPIRES"] = datetime.timedelta(minutes=40)
-
 postgres = config["postgres"]
-app.config["SQLALCHEMY_DATABASE_URI"] = (
-    f"postgresql://{postgres['user']}:{postgres['password']}@{postgres['host']}:{postgres['port']}/{postgres['database']}"
-)
+
+is_sqlserver = "SQL Server" in (postgres.get("options", {}).get("driver", ""))
+
+if is_sqlserver:
+    # MSSQL (pyodbc) 連線字串
+    host = postgres.get("host") or postgres.get("server")
+    port = postgres.get("port", 1433)
+    driver = postgres["options"]["driver"]
+    encrypt = "yes" if postgres["options"].get("encrypt", True) else "no"
+    trust = "yes" if postgres["options"].get("trustServerCertificate", False) else "no"
+
+    odbc = (
+        f"DRIVER={driver};"
+        f"SERVER={host},{port};"
+        f"DATABASE={postgres['database']};"
+        f"UID={postgres['user']};"
+        f"PWD={postgres['password']};"
+        f"Encrypt={encrypt};"
+        f"TrustServerCertificate={trust}"
+    )
+    app.config["SQLALCHEMY_DATABASE_URI"] = f"mssql+pyodbc:///?odbc_connect={quote_plus(odbc)}"
+else:
+    # 原本的 PostgreSQL 路徑（保留向下相容）
+    app.config["SQLALCHEMY_DATABASE_URI"] = (
+        f"postgresql://{postgres['user']}:{postgres['password']}@"
+        f"{postgres['host']}:{postgres['port']}/{postgres['database']}"
+    )
+
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db = SQLAlchemy(app)
 jwt = JWTManager(app)
 api = Api(app, version="1.0", title="Dementia API", description="API documentation", doc="/docs")
 
-# 表名
+# 表名（原樣保留）
 db_view = postgres.get("db_view")
 patient_table = postgres.get("patient_table")
-
 # =========================
 # 資料庫 Models
 # =========================
