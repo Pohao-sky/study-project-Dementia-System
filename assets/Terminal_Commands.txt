@@ -5,6 +5,7 @@ flask執行:python backend\python_run.py
 
 
 angular:npm start
+ng serve --ssl false
 
 
 mkcert -install
