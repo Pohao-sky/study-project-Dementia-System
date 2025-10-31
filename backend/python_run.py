@@ -31,7 +31,7 @@ import traceback
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": ["http://localhost:8096"], "methods": ["GET", "POST"]}})
+CORS(app, resources={r"/*": {"origins": ["http://localhost:8066"], "methods": ["GET", "POST"]}})
 
 # =========================
 # data server link
