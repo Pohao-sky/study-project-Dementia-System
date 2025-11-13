@@ -4,6 +4,8 @@ import { Router } from '@angular/router';
 import { LoginService } from '../../service/login.service';
 import { User } from '../../models/user';
 import { TrailMakingBLine, TrailMakingBNode } from '../../models/trail-making';
+import { PointerInputService } from '../../service/pointer-input.service';
+import { NormalizedPointerEvent } from '../../models/pointer-input';
 
 @Component({
   selector: 'app-trail-making-test-b-page',
@@ -37,6 +39,7 @@ export class TrailMakingTestBPageComponent {
   dragging = false;
   lastNode: TrailMakingBNode | null = null;
   currentPath: number[] = [];
+  private activePointerId: number | null = null;
 
   startTime: number | null = null;
   endTime: number | null = null;
@@ -58,7 +61,8 @@ export class TrailMakingTestBPageComponent {
 
   constructor(
     private loginService: LoginService,
-    private router: Router
+    private router: Router,
+    private pointerInputService: PointerInputService
   ) {}
 
   private readonly storageKey = 'trailMakingTestBResult';
@@ -212,40 +216,42 @@ export class TrailMakingTestBPageComponent {
     return this.nodes.find(node => (node.x - x) ** 2 + (node.y - y) ** 2 <= this.nodeRadius ** 2) || null;
   }
 
-  canvasMouseDown(event: MouseEvent) {
-    if (!this.started) return;
-    const rect = this.canvasRef.nativeElement.getBoundingClientRect();
-    const mouseX = event.clientX - rect.left;
-    const mouseY = event.clientY - rect.top;
-    const node = this.getNodeAt(mouseX, mouseY);
+  canvasPointerStart(event: MouseEvent | TouchEvent) {
+    if (!this.started || this.dragging) return;
+    const pointer = this.pointerInputService.onPointerStart(event);
+    if (!pointer) return;
+    const coords = this.toCanvasCoordinates(pointer);
+    const node = this.getNodeAt(coords.x, coords.y);
     if (this.lines.length === 0 && node && node.type === 'num' && node.label === '1') {
       this.dragging = true;
       this.lastNode = node;
+      this.activePointerId = pointer.identifier;
     } else if (this.lines.length > 0) {
       const expected = this.orderList[this.lines.length];
       if (node && node.type === expected.type && node.label === expected.label) {
         this.dragging = true;
         this.lastNode = node;
+        this.activePointerId = pointer.identifier;
       }
     }
     this.drawAll();
   }
 
-  canvasMouseMove(event: MouseEvent) {
-    if (!this.dragging || !this.lastNode) return;
-    const rect = this.canvasRef.nativeElement.getBoundingClientRect();
-    const mouseX = event.clientX - rect.left;
-    const mouseY = event.clientY - rect.top;
-    this.currentPath = [mouseX, mouseY];
+  canvasPointerMove(event: MouseEvent | TouchEvent) {
+    if (!this.dragging || !this.lastNode || this.activePointerId === null) return;
+    const pointer = this.pointerInputService.onPointerMove(event, this.activePointerId);
+    if (!pointer) return;
+    const coords = this.toCanvasCoordinates(pointer);
+    this.currentPath = [coords.x, coords.y];
     this.drawAll();
   }
 
-  canvasMouseUp(event: MouseEvent) {
-    if (!this.dragging || !this.lastNode) return;
-    const rect = this.canvasRef.nativeElement.getBoundingClientRect();
-    const mouseX = event.clientX - rect.left;
-    const mouseY = event.clientY - rect.top;
-    const nextNode = this.getNodeAt(mouseX, mouseY);
+  canvasPointerEnd(event: MouseEvent | TouchEvent) {
+    if (!this.dragging || !this.lastNode || this.activePointerId === null) return;
+    const pointer = this.pointerInputService.onPointerEnd(event, this.activePointerId);
+    if (!pointer) return;
+    const coords = this.toCanvasCoordinates(pointer);
+    const nextNode = this.getNodeAt(coords.x, coords.y);
     const expected = this.orderList[this.lines.length + 1];
 
     if (nextNode && expected && nextNode.type === expected.type && nextNode.label === expected.label && nextNode !== this.lastNode) {
@@ -269,6 +275,17 @@ export class TrailMakingTestBPageComponent {
     }
     this.dragging = false;
     this.currentPath = [];
+    this.activePointerId = null;
+    this.drawAll();
+  }
+
+  canvasPointerCancel(event: TouchEvent) {
+    if (!this.dragging || this.activePointerId === null) return;
+    this.pointerInputService.onPointerEnd(event, this.activePointerId);
+    this.dragging = false;
+    this.currentPath = [];
+    this.lastNode = null;
+    this.activePointerId = null;
     this.drawAll();
   }
 
@@ -289,5 +306,13 @@ export class TrailMakingTestBPageComponent {
     this.timerDisplay = result.duration.toFixed(1);
     this.canProceed = true;
     this.showIncompleteWarning = false; // 若有歷史結果，進入時就不顯示警告
+  }
+
+  private toCanvasCoordinates(pointer: NormalizedPointerEvent): { x: number; y: number } {
+    const rect = this.canvasRef.nativeElement.getBoundingClientRect();
+    return {
+      x: pointer.clientX - rect.left,
+      y: pointer.clientY - rect.top
+    };
   }
 }

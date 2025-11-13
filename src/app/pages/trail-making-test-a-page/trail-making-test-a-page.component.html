@@ -4,9 +4,13 @@
     <span>時間: {{timerDisplay}} 秒</span>
   </div>
   <canvas #canvas width="700" height="500"
-    (mousedown)="canvasMouseDown($event)"
-    (mousemove)="canvasMouseMove($event)"
-    (mouseup)="canvasMouseUp($event)">
+    (mousedown)="canvasPointerStart($event)"
+    (mousemove)="canvasPointerMove($event)"
+    (mouseup)="canvasPointerEnd($event)"
+    (touchstart)="canvasPointerStart($event)"
+    (touchmove)="canvasPointerMove($event)"
+    (touchend)="canvasPointerEnd($event)"
+    (touchcancel)="canvasPointerCancel($event)">
   </canvas>
   @if (!started) {
     <button class="tmt-start-btn" (click)="start()">開始連線測驗</button>
