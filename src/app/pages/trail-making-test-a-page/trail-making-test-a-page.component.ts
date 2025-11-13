@@ -16,7 +16,7 @@ export class TrailMakingTestAPageComponent {
   private canvasContext!: CanvasRenderingContext2D;
 
   private readonly totalNodeCount = 24;
-  private readonly nodeRadius = 22;
+  private readonly nodeRadius = 29;
   nodes: TrailMakingANode[] = [];
   lines: TrailMakingALine[] = [];
   dragging = false;
