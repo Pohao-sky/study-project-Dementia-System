@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, ElementRef, ViewChild } from '@angular/core';
+import { Component, ElementRef, ViewChild, AfterViewInit, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
 import { LoginService } from '../../service/login.service';
 import { User } from '../../models/user';
@@ -13,9 +13,15 @@ import { NormalizedPointerEvent } from '../../models/pointer-input';
   templateUrl: './trail-making-test-a-page.component.html',
   styleUrl: './trail-making-test-a-page.component.scss'
 })
-export class TrailMakingTestAPageComponent {
+export class TrailMakingTestAPageComponent implements AfterViewInit, OnDestroy {
   @ViewChild('canvas', { static: true }) canvasRef!: ElementRef<HTMLCanvasElement>;
   private canvasContext!: CanvasRenderingContext2D;
+  private resizeObserver: ResizeObserver | null = null;
+  private devicePixelRatio = window.devicePixelRatio || 1;
+  private readonly baseWidth = 700;
+  private readonly baseHeight = 500;
+  private logicalWidth = this.baseWidth;
+  private logicalHeight = this.baseHeight;
 
   private readonly totalNodeCount = 24;
   private readonly nodeRadius = 29;
@@ -61,15 +67,28 @@ export class TrailMakingTestAPageComponent {
       if (userString) this.user = JSON.parse(userString);
     }
     if (!this.user) this.router.navigate(['/login']);
+  }
 
+  ngAfterViewInit(): void {
     const canvas = this.canvasRef.nativeElement;
     this.canvasContext = canvas.getContext('2d')!;
+    this.updateCanvasSize();
     this.resetTest();
     this.restoreResult();
+
+    this.resizeObserver = new ResizeObserver(() => {
+      this.updateCanvasSize();
+      this.drawAll();
+    });
+    this.resizeObserver.observe(canvas);
   }
 
   ngOnDestroy() {
     if (this.timerInterval) clearInterval(this.timerInterval);
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect();
+      this.resizeObserver = null;
+    }
   }
 
   resetTest() {
@@ -115,10 +134,11 @@ export class TrailMakingTestAPageComponent {
   private randomNodes(count: number): TrailMakingANode[] {
     const points: TrailMakingANode[] = [];
     let attempts = 0;
-    const canvas = this.canvasRef.nativeElement;
+    const width = this.logicalWidth;
+    const height = this.logicalHeight;
     while (points.length < count && attempts < 3000) {
-      const x = Math.random() * (canvas.width - this.nodeRadius * 2) + this.nodeRadius;
-      const y = Math.random() * (canvas.height - this.nodeRadius * 2) + this.nodeRadius;
+      const x = Math.random() * (width - this.nodeRadius * 2) + this.nodeRadius;
+      const y = Math.random() * (height - this.nodeRadius * 2) + this.nodeRadius;
       const isFarEnough = points.every(point => (point.x - x) ** 2 + (point.y - y) ** 2 > this.nodeRadius * 2.8 * this.nodeRadius * 2.8);
       if (isFarEnough) {
         points.push({ label: points.length + 1, x, y });
@@ -138,8 +158,7 @@ export class TrailMakingTestAPageComponent {
   }
 
   private drawAll() {
-    const canvas = this.canvasRef.nativeElement;
-    this.canvasContext.clearRect(0, 0, canvas.width, canvas.height);
+    this.canvasContext.clearRect(0, 0, this.logicalWidth, this.logicalHeight);
     this.drawLines();
     this.drawNodes();
     this.drawDraggingLine();
@@ -293,9 +312,27 @@ export class TrailMakingTestAPageComponent {
 
   private toCanvasCoordinates(pointer: NormalizedPointerEvent): { x: number; y: number } {
     const rect = this.canvasRef.nativeElement.getBoundingClientRect();
+    const scaleX = this.canvasRef.nativeElement.width / rect.width;
+    const scaleY = this.canvasRef.nativeElement.height / rect.height;
     return {
-      x: pointer.clientX - rect.left,
-      y: pointer.clientY - rect.top
+      x: ((pointer.clientX - rect.left) * scaleX) / this.devicePixelRatio,
+      y: ((pointer.clientY - rect.top) * scaleY) / this.devicePixelRatio
     };
+  }
+
+  private updateCanvasSize() {
+    const canvas = this.canvasRef.nativeElement;
+    this.devicePixelRatio = window.devicePixelRatio || 1;
+
+    // Maintain a consistent logical coordinate space (700x500) so elements
+    // do not collapse or stretch on narrow screens while still fitting via CSS.
+    this.logicalWidth = this.baseWidth;
+    this.logicalHeight = this.baseHeight;
+
+    canvas.width = this.logicalWidth * this.devicePixelRatio;
+    canvas.height = this.logicalHeight * this.devicePixelRatio;
+
+    this.canvasContext.setTransform(1, 0, 0, 1, 0, 0);
+    this.canvasContext.scale(this.devicePixelRatio, this.devicePixelRatio);
   }
 }
