@@ -20,10 +20,13 @@ export class TrailMakingTestBPageComponent implements AfterViewInit, OnDestroy {
   private devicePixelRatio = window.devicePixelRatio || 1;
   private readonly baseWidth = 700;
   private readonly baseHeight = 500;
+  private readonly mobileHeightMultiplier = 3 / 2;
   private logicalWidth = this.baseWidth;
   private logicalHeight = this.baseHeight;
 
-  private readonly nodeRadius = 29;
+  private readonly desktopNodeRadius = 29;
+  private readonly mobileNodeRadius = 40;
+  private nodeRadius = this.desktopNodeRadius;
   readonly orderList: {type: 'num'|'char', label: string}[] = [
     {type:'num',label:'1'}, {type:'char',label:'A'},
     {type:'num',label:'2'}, {type:'char',label:'B'},
@@ -64,6 +67,8 @@ export class TrailMakingTestBPageComponent implements AfterViewInit, OnDestroy {
     "請點擊下方「開始連線測驗」按鈕開始！";
 
   showIncompleteWarning: boolean = false;
+
+  private isMobileLayout = false;
 
   constructor(
     private loginService: LoginService,
@@ -148,22 +153,40 @@ export class TrailMakingTestBPageComponent implements AfterViewInit, OnDestroy {
     this.updateTimerDisplay();
   }
 
-  private randomCoordinates(count: number): { x: number; y: number }[] {
+  private generateDistributedCoordinates(count: number): { x: number; y: number }[] {
     const coordinates: { x: number; y: number }[] = [];
-    const width = this.logicalWidth;
-    const height = this.logicalHeight;
-    while (coordinates.length < count) {
-      const x = Math.random() * (width - this.nodeRadius * 2) + this.nodeRadius;
-      const y = Math.random() * (height - this.nodeRadius * 2) + this.nodeRadius;
-      const isFarEnough = coordinates.every(point => (point.x - x) ** 2 + (point.y - y) ** 2 > (this.nodeRadius * 3) ** 2);
-      if (isFarEnough) coordinates.push({ x, y });
+    const columns = Math.ceil(Math.sqrt((count * this.logicalWidth) / this.logicalHeight));
+    const rows = Math.ceil(count / columns);
+    const cellWidth = this.logicalWidth / columns;
+    const cellHeight = this.logicalHeight / rows;
+
+    const cells = Array.from({ length: rows * columns }, (_, index) => index);
+    for (let i = cells.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [cells[i], cells[j]] = [cells[j], cells[i]];
     }
+
+    for (let i = 0; i < count && i < cells.length; i++) {
+      const cellIndex = cells[i];
+      const row = Math.floor(cellIndex / columns);
+      const column = cellIndex % columns;
+      const xMin = column * cellWidth + this.nodeRadius;
+      const xMax = (column + 1) * cellWidth - this.nodeRadius;
+      const yMin = row * cellHeight + this.nodeRadius;
+      const yMax = (row + 1) * cellHeight - this.nodeRadius;
+      const xRange = Math.max(xMax - xMin, 0);
+      const yRange = Math.max(yMax - yMin, 0);
+      const x = xMin + (xRange ? Math.random() * xRange : 0);
+      const y = yMin + (yRange ? Math.random() * yRange : 0);
+      coordinates.push({ x, y });
+    }
+
     return coordinates;
   }
 
   private setupNodes() {
     this.nodes = [];
-    const coordinates = this.randomCoordinates(this.orderList.length);
+    const coordinates = this.generateDistributedCoordinates(this.orderList.length);
     for (let i = 0; i < this.orderList.length; i++) {
       const node = { ...this.orderList[i], x: coordinates[i].x, y: coordinates[i].y } as TrailMakingBNode;
       this.nodes.push(node);
@@ -205,7 +228,8 @@ export class TrailMakingTestBPageComponent implements AfterViewInit, OnDestroy {
       this.canvasContext.strokeStyle = '#222';
       this.canvasContext.stroke();
       this.canvasContext.fillStyle = node.type === 'num' ? '#222' : '#1e50a2';
-      this.canvasContext.font = '19px bold sans-serif';
+      const labelFontSize = this.isMobileLayout ? 24 : 19;
+      this.canvasContext.font = `${labelFontSize}px bold sans-serif`;
       this.canvasContext.textAlign = 'center';
       this.canvasContext.textBaseline = 'middle';
       this.canvasContext.fillText(node.label, node.x, node.y);
@@ -341,11 +365,13 @@ export class TrailMakingTestBPageComponent implements AfterViewInit, OnDestroy {
   private updateCanvasSize() {
     const canvas = this.canvasRef.nativeElement;
     this.devicePixelRatio = window.devicePixelRatio || 1;
+    this.isMobileLayout = window.matchMedia('(max-width: 600px)').matches;
+    this.nodeRadius = this.isMobileLayout ? this.mobileNodeRadius : this.desktopNodeRadius;
 
-    // Keep a stable logical drawing size so portrait layouts scale via CSS
-    // instead of shrinking the coordinate space and overlapping nodes.
+    // Keep a stable logical drawing size on tablet/desktop while giving mobile
+    // 1/3 extra height so the layout breathes without altering rules.
     this.logicalWidth = this.baseWidth;
-    this.logicalHeight = this.baseHeight;
+    this.logicalHeight = this.baseHeight * (this.isMobileLayout ? this.mobileHeightMultiplier : 1);
 
     canvas.width = this.logicalWidth * this.devicePixelRatio;
     canvas.height = this.logicalHeight * this.devicePixelRatio;
