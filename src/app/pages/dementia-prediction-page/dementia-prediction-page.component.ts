@@ -39,7 +39,7 @@ export class DementiaPredictionPageComponent implements OnInit {
   ngOnInit(): void {
     this.loadUser();
     if (!this.user) {
-      this.router.navigate(['/login']);
+      this.router.navigate(['/login'], { state: { reason: 'relogin' } });
       return;
     }
     this.payload = this.collectPayload();
@@ -58,8 +58,6 @@ export class DementiaPredictionPageComponent implements OnInit {
       this.user = this.loginService.userInfo;
       return;
     }
-    const userStr = localStorage.getItem('userInfo');
-    if (userStr) this.user = JSON.parse(userStr);
   }
 
   private collectPayload(): PredictionPayload {

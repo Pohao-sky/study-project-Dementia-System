@@ -22,13 +22,9 @@ export class UserInfoPageComponent implements OnInit {
     // 1. 先從 service 拿
     if (this.api.userInfo) {
       this.user = this.api.userInfo;
-    } else {
-      // 2. 再從 localStorage 拿
-      const userStr = localStorage.getItem('userInfo');
-      if (userStr) this.user = JSON.parse(userStr);
     }
-    // 3. 沒資料就跳回登入頁
-    if (!this.user) this.router.navigate(['/login']);
+    // 2. 沒資料就跳回登入頁
+    if (!this.user) this.router.navigate(['/login'], { state: { reason: 'relogin' } });
   }
   ///
 

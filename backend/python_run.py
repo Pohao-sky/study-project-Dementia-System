@@ -40,7 +40,7 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 config_path = os.path.join(current_dir, "config.json")
 with open(config_path, "r", encoding="utf-8") as file: config = json.load(file)
 app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY")
-app.config["JWT_ACCESS_TOKEN_EXPIRES"] = datetime.timedelta(minutes=40)
+app.config["JWT_ACCESS_TOKEN_EXPIRES"] = datetime.timedelta(minutes=120)
 postgres = config["postgres"]
 
 is_sqlserver = "SQL Server" in (postgres.get("options", {}).get("driver", ""))

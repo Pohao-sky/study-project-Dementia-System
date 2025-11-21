@@ -26,7 +26,7 @@ export class MemoryDeclinePageComponent implements OnInit {
   ngOnInit(): void {
     this.loadUser();
     if (!this.user) {
-      this.router.navigate(['/login']);
+      this.router.navigate(['/login'], { state: { reason: 'relogin' } });
       return;
     }
     this.restoreAnswer();
@@ -62,8 +62,6 @@ export class MemoryDeclinePageComponent implements OnInit {
       this.user = this.loginService.userInfo;
       return;
     }
-    const userStr = localStorage.getItem('userInfo');
-    if (userStr) this.user = JSON.parse(userStr);
   }
 
   private restoreAnswer(): void {

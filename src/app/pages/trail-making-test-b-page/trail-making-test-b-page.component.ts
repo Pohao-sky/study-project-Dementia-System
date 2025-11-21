@@ -83,11 +83,8 @@ export class TrailMakingTestBPageComponent implements AfterViewInit, OnDestroy {
   ngOnInit() {
     if (this.loginService.userInfo) {
       this.user = this.loginService.userInfo;
-    } else {
-      const userString = localStorage.getItem('userInfo');
-      if (userString) this.user = JSON.parse(userString);
     }
-    if (!this.user) this.router.navigate(['/login']);
+    if (!this.user) this.router.navigate(['/login'], { state: { reason: 'relogin' } });
   }
 
   ngAfterViewInit(): void {

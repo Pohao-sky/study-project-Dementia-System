@@ -54,6 +54,12 @@ ng e2e
 
 Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
 
+## 預設時間設定
+
+- Token 期限：2 小時 (`tokenTtlMs = 2 * 60 * 60 * 1000`)
+- 閒置門檻：30 分鐘 (`idleThresholdMs = 30 * 60 * 1000`，可依需求調整)
+- Token逾期提醒：到期前 5 分鐘 (`expiryWarningWindowMs = 5 * 60 * 1000`)
+
 ## Additional Resources
 
 For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.

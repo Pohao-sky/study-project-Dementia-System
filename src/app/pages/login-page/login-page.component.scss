@@ -64,6 +64,17 @@
     text-align: center;
   }
 
+  .elder-info {
+    color: #1a4d2e;
+    background: #e6f4ea;
+    border: 1px solid #b4d6b8;
+    padding: 10px;
+    margin-top: 14px;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    text-align: center;
+  }
+
   /* 平板 / 桌機 */
   @media (min-width: 601px) {
     max-width: 420px;
@@ -91,6 +102,10 @@
 
     .elder-error {
       font-size: 1.1rem;
+    }
+
+    .elder-info {
+      font-size: 1.05rem;
     }
   }
 }

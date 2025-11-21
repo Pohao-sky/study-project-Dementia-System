@@ -28,6 +28,9 @@
       登入
     </button>
   </form>
+  @if(infoMsg){
+    <div class="elder-info">{{infoMsg}}</div>
+  }
   @if(errorMsg){
     <div class="elder-error">{{errorMsg}}</div>
   }

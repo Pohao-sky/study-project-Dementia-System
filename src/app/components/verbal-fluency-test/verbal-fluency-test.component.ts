@@ -30,11 +30,8 @@ export class VerbalFluencyTestComponent {
   ngOnInit() {
     if (this.loginService.userInfo) {
       this.user = this.loginService.userInfo;
-    } else {
-      const userJson = localStorage.getItem('userInfo');
-      if (userJson) this.user = JSON.parse(userJson);
     }
-    if (!this.user) this.router.navigate(['/login']);
+    if (!this.user) this.router.navigate(['/login'], { state: { reason: 'relogin' } });
 
     const savedResult = localStorage.getItem(this.storageKey);
     if (savedResult) {

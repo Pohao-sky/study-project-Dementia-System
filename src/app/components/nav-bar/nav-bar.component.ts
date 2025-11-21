@@ -14,9 +14,7 @@ export class NavBarComponent {
   constructor(private router: Router, private loginService: LoginService) {}
 
   logout() {
-    localStorage.clear();
-    this.loginService.userInfo = null;
-    this.router.navigate(['/login']);
+    this.loginService.logout();
   }
 
   isLoginPage(): boolean {

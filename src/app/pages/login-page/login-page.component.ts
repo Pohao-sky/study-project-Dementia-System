@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -12,9 +12,10 @@ import { HttpErrorResponse } from '@angular/common/http';
   templateUrl: './login-page.component.html',
   styleUrls: ['./login-page.component.scss']
 })
-export class LoginPageComponent {
+export class LoginPageComponent implements OnInit {
   loginForm: FormGroup;
   errorMsg = '';
+  infoMsg = '';
 
   constructor(
     private fb: FormBuilder,
@@ -27,6 +28,27 @@ export class LoginPageComponent {
     });
   }
 
+  ngOnInit(): void {
+    const navigation = this.router.getCurrentNavigation();
+    const reason = navigation?.extras?.state?.['reason'];
+    if (reason === 'expired') {
+      this.infoMsg = '登入已逾期，請重新登入。';
+    } else if (reason === 'idle') {
+      this.infoMsg = '因長時間未操作，請重新登入。';
+    } else if (reason === 'unauthorized') {
+      this.infoMsg = '驗證失敗或權杖已失效，請重新登入。';
+    } else if (reason === 'logout') {
+      this.infoMsg = '已登出。';
+    } else if (reason === 'relogin') {
+      this.infoMsg = '請重新登入以繼續。';
+    }
+
+    const navEntry = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined;
+    if (!this.infoMsg && navEntry?.type === 'reload') {
+      this.infoMsg = '頁面已重新整理，請重新登入。';
+    }
+  }
+
   onLogin() {
     this.errorMsg = '';
     if (this.loginForm.invalid) return;
@@ -34,9 +56,7 @@ export class LoginPageComponent {
     const { username, password } = this.loginForm.value;
       this.api.login(username, password).subscribe({
         next: (res: LoginResponse) => {
-          localStorage.setItem('token', res.token);
-          localStorage.setItem('userInfo', JSON.stringify(res.user));
-          this.api.userInfo = res.user;
+          this.api.setSession(res.token, res.user);
           this.router.navigate(['/user-info']);
         },
         error: (err: HttpErrorResponse) => {
