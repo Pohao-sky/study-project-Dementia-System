@@ -66,6 +66,9 @@ export class TrailMakingTestBPageComponent implements AfterViewInit, OnDestroy {
     "3. 按「開始連線測驗」後開始計時，全部完成即顯示用時與錯誤數。\n\n" +
     "請點擊下方「開始連線測驗」按鈕開始！";
 
+  showCompletionPopup = false;
+  completionMessage = '';
+
   showIncompleteWarning: boolean = false;
 
   private isMobileLayout = false;
@@ -143,6 +146,8 @@ export class TrailMakingTestBPageComponent implements AfterViewInit, OnDestroy {
     this.errorCount = 0;
     this.started = false;
     this.canProceed = false;
+    this.showCompletionPopup = false;
+    this.completionMessage = '';
     if (this.timerInterval) clearInterval(this.timerInterval);
     this.timerInterval = null;
     this.setupNodes();
@@ -302,10 +307,12 @@ export class TrailMakingTestBPageComponent implements AfterViewInit, OnDestroy {
         this.dragging = false;
         this.endTime = Date.now();
         this.updateTimerDisplay();
-          if (this.timerInterval !== null) clearInterval(this.timerInterval);
+        if (this.timerInterval !== null) clearInterval(this.timerInterval);
         const duration = (this.endTime - (this.startTime || 0)) / 1000;
         const result = { duration, errors: this.errorCount };
-        alert(`完成！總花費時間：${duration.toFixed(1)} 秒`);
+        this.completionMessage =
+          `完成！總花費時間：${duration.toFixed(1)} 秒\n\n接下來由醫護人操作，請將裝置交給醫護人員。`;
+        this.showCompletionPopup = true;
         localStorage.setItem(this.storageKey, JSON.stringify(result));
         this.canProceed = true;
       }
@@ -375,5 +382,9 @@ export class TrailMakingTestBPageComponent implements AfterViewInit, OnDestroy {
 
     this.canvasContext.setTransform(1, 0, 0, 1, 0, 0);
     this.canvasContext.scale(this.devicePixelRatio, this.devicePixelRatio);
+  }
+
+  closeCompletionPopup() {
+    this.showCompletionPopup = false;
   }
 }

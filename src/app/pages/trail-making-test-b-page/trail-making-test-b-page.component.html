@@ -33,3 +33,12 @@
     </div>
   </div>
 }
+
+@if (showCompletionPopup) {
+  <div class="tmt-popup-overlay">
+    <div class="tmt-popup">
+      <div class="popup-msg">{{ completionMessage }}</div>
+      <button (click)="closeCompletionPopup()">確定</button>
+    </div>
+  </div>
+}
