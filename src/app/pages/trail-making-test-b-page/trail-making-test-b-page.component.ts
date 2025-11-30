@@ -1,11 +1,13 @@
 import { CommonModule } from '@angular/common';
-import { Component, ElementRef, ViewChild, AfterViewInit, OnDestroy } from '@angular/core';
+import { Component, ElementRef, ViewChild, AfterViewInit, OnDestroy, OnInit, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { LoginService } from '../../service/login.service';
 import { User } from '../../models/user';
 import { TrailMakingBLine, TrailMakingBNode } from '../../models/trail-making';
 import { PointerInputService } from '../../service/pointer-input.service';
 import { NormalizedPointerEvent } from '../../models/pointer-input';
+import { GuestAuthService } from '../../service/guest-auth.service';
+
 
 @Component({
   selector: 'app-trail-making-test-b-page',
@@ -13,7 +15,7 @@ import { NormalizedPointerEvent } from '../../models/pointer-input';
   templateUrl: './trail-making-test-b-page.component.html',
   styleUrl: './trail-making-test-b-page.component.scss'
 })
-export class TrailMakingTestBPageComponent implements AfterViewInit, OnDestroy {
+export class TrailMakingTestBPageComponent implements AfterViewInit, OnDestroy, OnInit {
   @ViewChild('canvas', { static: true }) canvasRef!: ElementRef<HTMLCanvasElement>;
   private canvasContext!: CanvasRenderingContext2D;
   private resizeObserver: ResizeObserver | null = null;
@@ -73,6 +75,8 @@ export class TrailMakingTestBPageComponent implements AfterViewInit, OnDestroy {
 
   private isMobileLayout = false;
 
+  private readonly guestAuth = inject(GuestAuthService);
+
   constructor(
     private loginService: LoginService,
     private router: Router,
@@ -83,11 +87,10 @@ export class TrailMakingTestBPageComponent implements AfterViewInit, OnDestroy {
 
   user: User | null = null;
 
-  ngOnInit() {
-    if (this.loginService.userInfo) {
-      this.user = this.loginService.userInfo;
+  ngOnInit(): void {
+    if (!this.hasActiveSession()) {
+      this.router.navigate(['/login'], { state: { reason: 'relogin' } });
     }
-    if (!this.user) this.router.navigate(['/login'], { state: { reason: 'relogin' } });
   }
 
   ngAfterViewInit(): void {
@@ -386,5 +389,13 @@ export class TrailMakingTestBPageComponent implements AfterViewInit, OnDestroy {
 
   closeCompletionPopup() {
     this.showCompletionPopup = false;
+  }
+
+  private hasActiveSession(): boolean {
+    if (this.loginService.userInfo) {
+      this.user = this.loginService.userInfo;
+      return true;
+    }
+    return this.guestAuth.isGuestActive;
   }
 }

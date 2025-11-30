@@ -1,10 +1,12 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { User } from '../../models/user';
 import { LoginService } from '../../service/login.service';
 import { Router } from '@angular/router';
 import { PredictionPayload, PredictionResult, PredictionService } from '../../service/prediction.service';
 import { HttpErrorResponse } from '@angular/common/http';
+import { GuestAuthService } from '../../service/guest-auth.service';
+
 
 @Component({
   selector: 'app-dementia-prediction-page',
@@ -17,6 +19,8 @@ export class DementiaPredictionPageComponent implements OnInit {
   user: User | null = null;
   payload: PredictionPayload | null = null;
   result: PredictionResult | null = null;
+
+  private readonly guestAuth = inject(GuestAuthService);
 
   get predictionMessage(): string {
     if (!this.result) return '';
@@ -37,8 +41,7 @@ export class DementiaPredictionPageComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.loadUser();
-    if (!this.user) {
+    if (!this.hasActiveSession()) {
       this.router.navigate(['/login'], { state: { reason: 'relogin' } });
       return;
     }
@@ -60,18 +63,32 @@ export class DementiaPredictionPageComponent implements OnInit {
     }
   }
 
+  private hasActiveSession(): boolean {
+    this.loadUser();
+    if (this.user) return true;
+    return this.guestAuth.isGuestActive;
+  }
+
   private collectPayload(): PredictionPayload {
+    const guestPayload = this.guestAuth.sessionPayload;
+
     return {
-      CDR_SUM: this.user?.CDR_SUM ?? 0,
-      MMSE: this.user?.MMSE_Score ?? 0,
+      CDR_SUM: this.resolveScore(this.user?.CDR_SUM, guestPayload?.cdrSum),
+      MMSE: this.resolveScore(this.user?.MMSE_Score, guestPayload?.naccMmse),
       MEMORY_DECLINE: Number(localStorage.getItem('memoryDeclineAnswer') ?? 0),
       VEGETABLE_COUNT: this.readTotal('verbalFluencyResult_vegetables'),
       ANIMAL_COUNT: this.readTotal('verbalFluencyResult_animals'),
       TRAIL_A_SECONDS: this.readDuration('trailMakingTestAResult'),
       TRAIL_B_SECONDS: this.readDuration('trailMakingTestBResult'),
-      CDR_MEMORY: this.user?.MEMORY ?? 0,
-      CDR_GLOB: this.user?.CDRGLOB ?? 0,
+      CDR_MEMORY: this.resolveScore(this.user?.MEMORY, guestPayload?.cdrMemory),
+      CDR_GLOB: this.resolveScore(this.user?.CDRGLOB, guestPayload?.cdrGlob),
     };
+  }
+
+  private resolveScore(primary: number | null | undefined, fallback: number | undefined): number {
+    if (typeof primary === 'number') return primary;
+    if (typeof fallback === 'number') return fallback;
+    return 0;
   }
 
   private readTotal(key: string): number {

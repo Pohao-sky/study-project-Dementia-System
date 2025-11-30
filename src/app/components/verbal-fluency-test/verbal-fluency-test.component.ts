@@ -1,10 +1,11 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, Input, Output, NgZone, ChangeDetectorRef } from '@angular/core';
+import { ChangeDetectorRef, Component, EventEmitter, Input, NgZone, OnInit, Output, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { User } from '../../models/user';
 import { LoginService } from '../../service/login.service';
 import { VerbalFluencyResult } from '../../models/verbal-fluency-result';
 import { SpeechService } from '../../service/speech.service';
+import { GuestAuthService } from '../../service/guest-auth.service';
 
 
 @Component({
@@ -14,31 +15,24 @@ import { SpeechService } from '../../service/speech.service';
   templateUrl: './verbal-fluency-test.component.html',
   styleUrl: './verbal-fluency-test.component.scss'
 })
-export class VerbalFluencyTestComponent {
+export class VerbalFluencyTestComponent implements OnInit {
   user: User | null = null;
 
+  private readonly loginService = inject(LoginService);
+  private readonly guestAuth = inject(GuestAuthService);
+  private readonly router = inject(Router);
+  private readonly angularZone = inject(NgZone);
+  private readonly changeDetector = inject(ChangeDetectorRef);
+  private readonly speechService = inject(SpeechService);
 
-  constructor(
-    private loginService: LoginService,
-    private router: Router,
-    private angularZone: NgZone,
-    private changeDetector: ChangeDetectorRef,
-    private speechService: SpeechService
-  ) {}
-
-
-  ngOnInit() {
-    if (this.loginService.userInfo) {
-      this.user = this.loginService.userInfo;
+  ngOnInit(): void {
+    if (!this.hasActiveSession()) {
+      this.router.navigate(['/login'], { state: { reason: 'relogin' } });
+      return;
     }
-    if (!this.user) this.router.navigate(['/login'], { state: { reason: 'relogin' } });
-
-    const savedResult = localStorage.getItem(this.storageKey);
-    if (savedResult) {
-      this.analyzeResult = JSON.parse(savedResult) as VerbalFluencyResult;
-      this.isDone = true;
-    }
+    this.restoreSavedResult();
   }
+
 
   @Input() type: 'animals' | 'vegetables' = 'animals';
   @Input() title: string = '語詞流暢性測驗';
@@ -240,5 +234,20 @@ export class VerbalFluencyTestComponent {
   getKeys(object: Record<string, unknown> | null): string[] {
     if (!object) return [];
     return Object.keys(object);
+  }
+
+  private hasActiveSession(): boolean {
+    if (this.loginService.userInfo) {
+      this.user = this.loginService.userInfo;
+      return true;
+    }
+    return this.guestAuth.isGuestActive;
+  }
+
+  private restoreSavedResult(): void {
+    const savedResult = localStorage.getItem(this.storageKey);
+    if (!savedResult) return;
+    this.analyzeResult = JSON.parse(savedResult) as VerbalFluencyResult;
+    this.isDone = true;
   }
 }

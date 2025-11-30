@@ -5,6 +5,7 @@ import { User } from '../../models/user';
 import { LoginService } from '../../service/login.service';
 
 
+
 @Component({
   selector: 'app-user-info-page',
   standalone: true,

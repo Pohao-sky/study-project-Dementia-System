@@ -1,11 +1,13 @@
 import { CommonModule } from '@angular/common';
-import { Component, ElementRef, ViewChild, AfterViewInit, OnDestroy } from '@angular/core';
+import { Component, ElementRef, ViewChild, AfterViewInit, OnDestroy, OnInit, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { LoginService } from '../../service/login.service';
 import { User } from '../../models/user';
 import { TrailMakingALine, TrailMakingANode } from '../../models/trail-making';
 import { PointerInputService } from '../../service/pointer-input.service';
 import { NormalizedPointerEvent } from '../../models/pointer-input';
+import { GuestAuthService } from '../../service/guest-auth.service';
+
 
 @Component({
   selector: 'app-trail-making-test-a-page',
@@ -13,7 +15,7 @@ import { NormalizedPointerEvent } from '../../models/pointer-input';
   templateUrl: './trail-making-test-a-page.component.html',
   styleUrl: './trail-making-test-a-page.component.scss'
 })
-export class TrailMakingTestAPageComponent implements AfterViewInit, OnDestroy {
+export class TrailMakingTestAPageComponent implements AfterViewInit, OnDestroy, OnInit {
   @ViewChild('canvas', { static: true }) canvasRef!: ElementRef<HTMLCanvasElement>;
   private canvasContext!: CanvasRenderingContext2D;
   private resizeObserver: ResizeObserver | null = null;
@@ -58,17 +60,18 @@ export class TrailMakingTestAPageComponent implements AfterViewInit, OnDestroy {
 
   private readonly storageKey = 'trailMakingTestAResult';
 
+  private readonly guestAuth = inject(GuestAuthService);
+
   constructor(
     private loginService: LoginService,
     private router: Router,
     private pointerInputService: PointerInputService
   ) {}
 
-  ngOnInit() {
-    if (this.loginService.userInfo) {
-      this.user = this.loginService.userInfo;
+  ngOnInit(): void {
+    if (!this.hasActiveSession()) {
+      this.router.navigate(['/login'], { state: { reason: 'relogin' } });
     }
-    if (!this.user) this.router.navigate(['/login'], { state: { reason: 'relogin' } });
   }
 
   ngAfterViewInit(): void {
@@ -353,5 +356,13 @@ export class TrailMakingTestAPageComponent implements AfterViewInit, OnDestroy {
 
     this.canvasContext.setTransform(1, 0, 0, 1, 0, 0);
     this.canvasContext.scale(this.devicePixelRatio, this.devicePixelRatio);
+  }
+
+  private hasActiveSession(): boolean {
+    if (this.loginService.userInfo) {
+      this.user = this.loginService.userInfo;
+      return true;
+    }
+    return this.guestAuth.isGuestActive;
   }
 }

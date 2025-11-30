@@ -10,7 +10,7 @@ from typing import Dict, List, Tuple, Any, Set, Optional
 import numpy as np
 from flask import Flask, request, jsonify, abort
 from flask_cors import CORS
-from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
+from flask_jwt_extended import JWTManager, create_access_token, get_jwt_identity
 from flask_restx import Api, Resource
 from flask_sqlalchemy import SQLAlchemy
 from dotenv import load_dotenv
@@ -18,6 +18,8 @@ from werkzeug.exceptions import HTTPException
 from urllib.parse import quote_plus
 
 from model import predict_with_probability, load_trained_model
+from guest_routes import guest_blueprint
+from jwt_helper import guest_or_user_required
 from faster_whisper import WhisperModel
 import torch
 import jieba
@@ -32,6 +34,7 @@ load_dotenv()
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": ["http://localhost:8066"], "methods": ["GET", "POST"]}})
+app.register_blueprint(guest_blueprint)
 
 # =========================
 # data server link
@@ -397,7 +400,7 @@ def hexdump_prefix(b: bytes, n: int = 8) -> str:
 # ---- 在 /speech_upload_chunk 內部調整 ----
 @api.route('/speech_upload_chunk')
 class SpeechUploadChunk(Resource):
-    @jwt_required()
+    @guest_or_user_required
     def post(self):
         recording_id = request.form['recording_id']
         chunk_index = int(request.form['chunk_index'])
@@ -441,7 +444,7 @@ class SpeechUploadChunk(Resource):
 # =========================
 @api.route("/speech_test_finalize")
 class SpeechTestFinalize(Resource):
-    @jwt_required()
+    @guest_or_user_required
     def post(self):
         recording_id = request.form["recording_id"]
         test_type = request.form.get("type")
@@ -497,7 +500,7 @@ class SpeechTestFinalize(Resource):
 # =========================
 @api.route('/predict')
 class Predict(Resource):
-    @jwt_required()
+    @guest_or_user_required
     def post(self):
         # Content-Type 檢查
         if not request.is_json:

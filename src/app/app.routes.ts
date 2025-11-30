@@ -6,9 +6,11 @@ import { TrailMakingTestAPageComponent } from './pages/trail-making-test-a-page/
 import { TrailMakingTestBPageComponent } from './pages/trail-making-test-b-page/trail-making-test-b-page.component';
 import { MemoryDeclinePageComponent } from './pages/memory-decline-page/memory-decline-page.component';
 import { DementiaPredictionPageComponent } from './pages/dementia-prediction-page/dementia-prediction-page.component';
+import { GuestModePageComponent } from './pages/guest-mode-page/guest-mode-page.component';
 
 export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'login' },
+  { path: 'guest-mode', component: GuestModePageComponent },
   { path: 'login', component: LoginPageComponent },
   { path: 'user-info', component: UserInfoPageComponent },
   { path: 'voice-test', component: VoiceTestPageComponent },

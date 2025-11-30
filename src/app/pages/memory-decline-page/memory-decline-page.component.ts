@@ -1,8 +1,10 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { User } from '../../models/user';
 import { LoginService } from '../../service/login.service';
 import { Router } from '@angular/router';
+import { GuestAuthService } from '../../service/guest-auth.service';
+
 
 @Component({
   selector: 'app-memory-decline-page',
@@ -21,11 +23,12 @@ export class MemoryDeclinePageComponent implements OnInit {
   // 未作答警告顯示控制
   showIncompleteWarning: boolean = false;
 
+  private readonly guestAuth = inject(GuestAuthService);
+
   constructor(private loginService: LoginService, private router: Router) {}
 
   ngOnInit(): void {
-    this.loadUser();
-    if (!this.user) {
+    if (!this.hasActiveSession()) {
       this.router.navigate(['/login'], { state: { reason: 'relogin' } });
       return;
     }
@@ -62,6 +65,12 @@ export class MemoryDeclinePageComponent implements OnInit {
       this.user = this.loginService.userInfo;
       return;
     }
+  }
+
+  private hasActiveSession(): boolean {
+    this.loadUser();
+    if (this.user) return true;
+    return this.guestAuth.isGuestActive;
   }
 
   private restoreAnswer(): void {

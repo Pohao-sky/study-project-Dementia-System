@@ -1,0 +1,43 @@
+<section class="guest-mode">
+  <h2>訪客模式</h2>
+  <p class="description">填寫下列表單即可以訪客身份試用，紀錄會在瀏覽器關閉或登出後消失。</p>
+  <form [formGroup]="guestForm" (ngSubmit)="submitGuestForm()" class="guest-form">
+    <div class="form-row">
+      <label for="cdrSum">CDRSUM（CDR總分）</label>
+      <input id="cdrSum" type="number" min="0" max="18" step="0.5" formControlName="cdrSum" />
+      @if(guestForm.controls.cdrSum.invalid && guestForm.controls.cdrSum.touched){
+        <p class="error">必須介於 0 到 18，間隔 0.5，且不可輸入 16.5 或 17.5。</p>
+      }
+    </div>
+
+    <div class="form-row">
+      <label for="cdrMemory">CDR-memory</label>
+      <input id="cdrMemory" type="number" min="0" max="3" step="0.5" formControlName="cdrMemory" />
+      @if(guestForm.controls.cdrMemory.invalid && guestForm.controls.cdrMemory.touched){
+        <p class="error">限輸入 0、0.5、1、2、3 其中之一。</p>
+      }
+    </div>
+
+    <div class="form-row">
+      <label for="cdrGlob">CDRGLOB（CDR加權）</label>
+      <input id="cdrGlob" type="number" min="0" max="3" step="0.5" formControlName="cdrGlob" />
+      @if(guestForm.controls.cdrGlob.invalid && guestForm.controls.cdrGlob.touched){
+        <p class="error">限輸入 0、0.5、1、2、3 其中之一。</p>
+      }
+    </div>
+
+    <div class="form-row">
+      <label for="naccMmse">MMSE</label>
+      <input id="naccMmse" type="number" min="0" max="30" step="1" formControlName="naccMmse" />
+      @if(guestForm.controls.naccMmse.invalid && guestForm.controls.naccMmse.touched){
+        <p class="error">僅接受 0–30 的整數。</p>
+      }
+    </div>
+
+    <button type="submit" [disabled]="guestForm.invalid">下一頁</button>
+  </form>
+
+  @if(submissionError){
+    <p class="error">{{submissionError}}</p>
+  }
+</section>
