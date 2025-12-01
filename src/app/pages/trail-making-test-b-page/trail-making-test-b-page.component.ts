@@ -29,21 +29,34 @@ export class TrailMakingTestBPageComponent implements AfterViewInit, OnDestroy, 
   private readonly desktopNodeRadius = 29;
   private readonly mobileNodeRadius = 40;
   private nodeRadius = this.desktopNodeRadius;
-  readonly orderList: {type: 'num'|'char', label: string}[] = [
-    {type:'num',label:'1'}, {type:'char',label:'A'},
-    {type:'num',label:'2'}, {type:'char',label:'B'},
-    {type:'num',label:'3'}, {type:'char',label:'C'},
-    {type:'num',label:'4'}, {type:'char',label:'D'},
-    {type:'num',label:'5'}, {type:'char',label:'E'},
-    {type:'num',label:'6'}, {type:'char',label:'F'},
-    {type:'num',label:'7'}, {type:'char',label:'G'},
-    {type:'num',label:'8'}, {type:'char',label:'H'},
-    {type:'num',label:'9'}, {type:'char',label:'I'},
-    {type:'num',label:'10'}, {type:'char',label:'J'},
-    {type:'num',label:'11'}, {type:'char',label:'K'},
-    {type:'num',label:'12'}, {type:'char',label:'L'},
-    {type:'num',label:'13'}
+  readonly orderList: { type: 'num' | 'char'; label: string }[] = [
+    { type: 'num', label: '1' },
+    { type: 'char', label: '鼠' },
+    { type: 'num', label: '2' },
+    { type: 'char', label: '牛' },
+    { type: 'num', label: '3' },
+    { type: 'char', label: '虎' },
+    { type: 'num', label: '4' },
+    { type: 'char', label: '兔' },
+    { type: 'num', label: '5' },
+    { type: 'char', label: '龍' },
+    { type: 'num', label: '6' },
+    { type: 'char', label: '蛇' },
+    { type: 'num', label: '7' },
+    { type: 'char', label: '馬' },
+    { type: 'num', label: '8' },
+    { type: 'char', label: '羊' },
+    { type: 'num', label: '9' },
+    { type: 'char', label: '猴' },
+    { type: 'num', label: '10' },
+    { type: 'char', label: '雞' },
+    { type: 'num', label: '11' },
+    { type: 'char', label: '狗' },
+    { type: 'num', label: '12' },
+    { type: 'char', label: '豬' },
+    { type: 'num', label: '13' }
   ];
+
 
   nodes: TrailMakingBNode[] = [];
   lines: TrailMakingBLine[] = [];
@@ -63,7 +76,7 @@ export class TrailMakingTestBPageComponent implements AfterViewInit, OnDestroy, 
   showRules = true;
   rulesMessage =
     "【遊戲規則】\n" +
-    "1. 依序點擊並連線「1→A→2→B→...→13→L」。\n" +
+    "1. 依序點擊並連線「1→鼠→2→牛→...→12→豬→13」。\n" +
     "2. 拖曳錯誤會提醒並記錄錯誤次數。\n" +
     "3. 按「開始連線測驗」後開始計時，全部完成即顯示用時與錯誤數。\n\n" +
     "請點擊下方「開始連線測驗」按鈕開始！";
@@ -321,7 +334,7 @@ export class TrailMakingTestBPageComponent implements AfterViewInit, OnDestroy, 
       }
     } else if (nextNode && nextNode !== this.lastNode) {
       const currentExpected = this.orderList[this.lines.length];
-      const nextTypeLabel = currentExpected.type === 'num' ? '字母' : '數字';
+      const nextTypeLabel = currentExpected.type === 'num' ? '生肖' : '數字';
       alert(`你剛連到 ${this.lastNode.label}，下一個${nextTypeLabel}是什麼？`);
     }
     this.dragging = false;

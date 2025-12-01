@@ -49,7 +49,7 @@ describe('TrailMakingTestBPageComponent', () => {
     const node1: TrailMakingBNode = { type: 'num', label: '1', x: 0, y: 0 };
     const comp = component as unknown as { isNodeConnected(node: TrailMakingBNode): boolean };
     expect(comp.isNodeConnected(node1)).toBeTrue();
-    const nodeA: TrailMakingBNode = { type: 'char', label: 'A', x: 0, y: 0 };
+    const nodeA: TrailMakingBNode = { type: 'char', label: '鼠', x: 0, y: 0 };
     const line: TrailMakingBLine = { from: node1, to: nodeA };
     component.lines = [line];
     expect(comp.isNodeConnected(nodeA)).toBeTrue();
@@ -69,10 +69,15 @@ describe('TrailMakingTestBPageComponent', () => {
   it('should handle mouse and touch pointer sequences the same way', () => {
     component.started = true;
     const originalOrder = [...component.orderList];
-    component.orderList.splice(0, component.orderList.length, { type: 'num', label: '1' }, { type: 'char', label: 'A' });
-    component.nodes = [
-      { type: 'num', label: '1', x: 60, y: 60 },
-      { type: 'char', label: 'A', x: 120, y: 120 }
+    component.orderList.splice(
+        0,
+        component.orderList.length,
+        { type: 'num', label: '1' },
+        { type: 'char', label: '鼠' }
+      );
+      component.nodes = [
+        { type: 'num', label: '1', x: 60, y: 60 },
+        { type: 'char', label: '鼠', x: 120, y: 120 }
     ];
     component.lines = [];
     const canvas = component.canvasRef.nativeElement;
