@@ -26,7 +26,7 @@ export class TrailMakingTestAPageComponent implements AfterViewInit, OnDestroy, 
   private logicalWidth = this.baseWidth;
   private logicalHeight = this.baseHeight;
 
-  private readonly totalNodeCount = 24;
+  private readonly totalNodeCount = 25;
   private readonly desktopNodeRadius = 29;
   private readonly mobileNodeRadius = 40;
   private nodeRadius = this.desktopNodeRadius;
