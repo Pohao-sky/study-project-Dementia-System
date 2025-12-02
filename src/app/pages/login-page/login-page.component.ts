@@ -42,11 +42,6 @@ export class LoginPageComponent implements OnInit {
     } else if (reason === 'relogin') {
       this.infoMsg = '請重新登入以繼續。';
     }
-
-    const navEntry = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined;
-    if (!this.infoMsg && navEntry?.type === 'reload') {
-      this.infoMsg = '頁面已重新整理，請重新登入。';
-    }
   }
 
   onLogin() {
@@ -54,14 +49,14 @@ export class LoginPageComponent implements OnInit {
     if (this.loginForm.invalid) return;
 
     const { username, password } = this.loginForm.value;
-      this.api.login(username, password).subscribe({
-        next: (res: LoginResponse) => {
-          this.api.setSession(res.token, res.user);
-          this.router.navigate(['/user-info']);
-        },
-        error: (err: HttpErrorResponse) => {
-          this.errorMsg = err.error?.error || '帳號或密碼錯誤';
-        }
-      });
-    }
+    this.api.login(username, password).subscribe({
+      next: (res: LoginResponse) => {
+        this.api.setSession(res.token, res.user);
+        this.router.navigate(['/user-info']);
+      },
+      error: (err: HttpErrorResponse) => {
+        this.errorMsg = err.error?.error || '帳號或密碼錯誤';
+      }
+    });
   }
+}

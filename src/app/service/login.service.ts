@@ -16,7 +16,10 @@ export interface LoginResponse {
 export class LoginService {
   userInfo: User | null = null;
   token: string | null = null;
+  private expiresAt: number | null = null;
+  private lastActivityAt: number | null = null;
 
+  private readonly sessionStorageKey = 'auth_session';
   private readonly tokenTtlMs = 2 * 60 * 60 * 1000; // 2 hours
   private readonly idleThresholdMs = 30 * 60 * 1000; // assumption: 30 minutes of inactivity
   private readonly expiryWarningWindowMs = 5 * 60 * 1000;
@@ -34,6 +37,8 @@ export class LoginService {
     ['mousemove', 'keydown', 'mousedown', 'touchstart'].forEach(event => {
       window.addEventListener(event, () => this.resetIdleTimer());
     });
+
+    this.restoreSession();
   }
 
   login(username: string, password: string): Observable<LoginResponse> {
@@ -56,6 +61,9 @@ export class LoginService {
   setSession(token: string, user: User) {
     this.token = token;
     this.userInfo = user;
+    this.expiresAt = Date.now() + this.tokenTtlMs;
+    this.lastActivityAt = Date.now();
+    this.persistSession();
     this.scheduleExpiryTimers();
     this.resetIdleTimer();
   }
@@ -63,8 +71,11 @@ export class LoginService {
   clearSession(reason?: 'logout' | 'expired' | 'idle' | 'unauthorized' | 'relogin') {
     this.token = null;
     this.userInfo = null;
+    this.expiresAt = null;
+    this.lastActivityAt = null;
     this.cancelTimers();
     this.clearTestRecords();
+    sessionStorage.removeItem(this.sessionStorageKey);
     if (reason) {
       this.router.navigate(['/login'], { state: { reason } });
     }
@@ -81,15 +92,25 @@ export class LoginService {
   private scheduleExpiryTimers() {
     this.cancelTimers();
     this.hasWarned = false;
-    if (!this.token) return;
+    if (!this.token || !this.expiresAt) return;
 
-    const warningDelay = Math.max(this.tokenTtlMs - this.expiryWarningWindowMs, 0);
+    const now = Date.now();
+    const remainingMs = this.expiresAt - now;
+
+    if (remainingMs <= 0) {
+      this.handleTokenExpiry();
+      return;
+    }
+
+    const warningDelay = Math.max(remainingMs - this.expiryWarningWindowMs, 0);
     this.warningTimer = setTimeout(() => this.showExpiryWarning(), warningDelay);
-    this.expiryTimer = setTimeout(() => this.handleTokenExpiry(), this.tokenTtlMs);
+    this.expiryTimer = setTimeout(() => this.handleTokenExpiry(), remainingMs);
   }
 
   private resetIdleTimer() {
     if (!this.token) return;
+    this.lastActivityAt = Date.now();
+    this.persistSession();
     if (this.idleTimer) clearTimeout(this.idleTimer);
     this.idleTimer = setTimeout(() => this.handleIdleTimeout(), this.idleThresholdMs);
   }
@@ -129,5 +150,55 @@ export class LoginService {
     ];
 
     keys.forEach(key => localStorage.removeItem(key));
+  }
+
+  private persistSession() {
+    if (!this.token || !this.userInfo || !this.expiresAt || !this.lastActivityAt) return;
+    const payload = {
+      token: this.token,
+      user: this.userInfo,
+      expiresAt: this.expiresAt,
+      lastActivityAt: this.lastActivityAt,
+    };
+    sessionStorage.setItem(this.sessionStorageKey, JSON.stringify(payload));
+  }
+
+  private restoreSession() {
+    const raw = sessionStorage.getItem(this.sessionStorageKey);
+    if (!raw) return;
+
+    try {
+      const parsed = JSON.parse(raw) as {
+        token: string;
+        user: User;
+        expiresAt: number;
+        lastActivityAt?: number;
+      };
+
+      if (!parsed.token || !parsed.user || !parsed.expiresAt) return;
+
+      const now = Date.now();
+
+      if (parsed.expiresAt <= now) {
+        this.clearSession('expired');
+        return;
+      }
+
+      const lastActivity = parsed.lastActivityAt ?? parsed.expiresAt - this.tokenTtlMs;
+      if (now - lastActivity >= this.idleThresholdMs) {
+        this.clearSession('idle');
+        return;
+      }
+
+      this.token = parsed.token;
+      this.userInfo = parsed.user;
+      this.expiresAt = parsed.expiresAt;
+      this.lastActivityAt = now;
+
+      this.scheduleExpiryTimers();
+      this.resetIdleTimer();
+    } catch (error) {
+      sessionStorage.removeItem(this.sessionStorageKey);
+    }
   }
 }
