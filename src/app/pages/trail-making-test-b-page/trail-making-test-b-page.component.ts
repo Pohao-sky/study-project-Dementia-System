@@ -8,7 +8,6 @@ import { PointerInputService } from '../../service/pointer-input.service';
 import { NormalizedPointerEvent } from '../../models/pointer-input';
 import { GuestAuthService } from '../../service/guest-auth.service';
 
-
 @Component({
   selector: 'app-trail-making-test-b-page',
   imports: [CommonModule],
@@ -20,43 +19,40 @@ export class TrailMakingTestBPageComponent implements AfterViewInit, OnDestroy, 
   private canvasContext!: CanvasRenderingContext2D;
   private resizeObserver: ResizeObserver | null = null;
   private devicePixelRatio = window.devicePixelRatio || 1;
-  private readonly baseWidth = 700;
-  private readonly baseHeight = 500;
-  private readonly mobileHeightMultiplier = 3 / 2;
+
+  // 直向比例 540x750
+  private readonly baseWidth = 540;
+  private readonly baseHeight = 750;
   private logicalWidth = this.baseWidth;
   private logicalHeight = this.baseHeight;
 
-  private readonly desktopNodeRadius = 29;
-  private readonly mobileNodeRadius = 40;
+  private readonly desktopNodeRadius = 24;
+  private readonly mobileNodeRadius = 30;
   private nodeRadius = this.desktopNodeRadius;
-  readonly orderList: { type: 'num' | 'char'; label: string }[] = [
-    { type: 'num', label: '1' },
-    { type: 'char', label: '鼠' },
-    { type: 'num', label: '2' },
-    { type: 'char', label: '牛' },
-    { type: 'num', label: '3' },
-    { type: 'char', label: '虎' },
-    { type: 'num', label: '4' },
-    { type: 'char', label: '兔' },
-    { type: 'num', label: '5' },
-    { type: 'char', label: '龍' },
-    { type: 'num', label: '6' },
-    { type: 'char', label: '蛇' },
-    { type: 'num', label: '7' },
-    { type: 'char', label: '馬' },
-    { type: 'num', label: '8' },
-    { type: 'char', label: '羊' },
-    { type: 'num', label: '9' },
-    { type: 'char', label: '猴' },
-    { type: 'num', label: '10' },
-    { type: 'char', label: '雞' },
-    { type: 'num', label: '11' },
-    { type: 'char', label: '狗' },
-    { type: 'num', label: '12' },
-    { type: 'char', label: '豬' },
-    { type: 'num', label: '13' }
-  ];
 
+  // 修改：順序列表只到 10 (End) 和 猴 (I)
+  // 對應關係：A=鼠, B=牛, C=虎, D=兔, E=龍, F=蛇, G=馬, H=羊, I=猴
+  readonly orderList: { type: 'num' | 'char'; label: string }[] = [
+    { type: 'num', label: '1' },   // Begin
+    { type: 'char', label: '鼠' }, // A
+    { type: 'num', label: '2' },
+    { type: 'char', label: '牛' }, // B
+    { type: 'num', label: '3' },
+    { type: 'char', label: '虎' }, // C
+    { type: 'num', label: '4' },
+    { type: 'char', label: '兔' }, // D
+    { type: 'num', label: '5' },
+    { type: 'char', label: '龍' }, // E
+    { type: 'num', label: '6' },
+    { type: 'char', label: '蛇' }, // F
+    { type: 'num', label: '7' },
+    { type: 'char', label: '馬' }, // G
+    { type: 'num', label: '8' },
+    { type: 'char', label: '羊' }, // H
+    { type: 'num', label: '9' },
+    { type: 'char', label: '猴' }, // I
+    { type: 'num', label: '10' }  // End
+  ];
 
   nodes: TrailMakingBNode[] = [];
   lines: TrailMakingBLine[] = [];
@@ -69,25 +65,26 @@ export class TrailMakingTestBPageComponent implements AfterViewInit, OnDestroy, 
   endTime: number | null = null;
   timerInterval: ReturnType<typeof setInterval> | null = null;
   errorCount = 0;
-  started = false;
+
+  started = true;
+  isTimerRunning = false;
+
   timerDisplay = '0.0';
   canProceed = false;
 
   showRules = true;
   rulesMessage =
     "【遊戲規則】\n" +
-    "1. 依序點擊並連線「1→鼠→2→牛→...→12→豬→13」。\n" +
-    "2. 拖曳錯誤會提醒並記錄錯誤次數。\n" +
-    "3. 按「開始連線測驗」後開始計時，全部完成即顯示用時與錯誤數。\n\n" +
-    "請點擊下方「開始連線測驗」按鈕開始！";
+    "1. 請依序點擊並連線：\n" +
+    "   1 → 鼠 → 2 → 牛 → ... → 10\n" +
+    "2. 點擊畫面中央的「1」並拖曳時，系統將自動開始計時。\n" +
+    "3. 完成全部連線後，將顯示用時與錯誤數。\n\n" +
+    "請按「確定」後，直接點擊畫面上的 ① 開始！";
 
   showCompletionPopup = false;
   completionMessage = '';
-
   showIncompleteWarning: boolean = false;
-
   private isMobileLayout = false;
-
   private readonly guestAuth = inject(GuestAuthService);
 
   constructor(
@@ -97,7 +94,6 @@ export class TrailMakingTestBPageComponent implements AfterViewInit, OnDestroy, 
   ) {}
 
   private readonly storageKey = 'trailMakingTestBResult';
-
   user: User | null = null;
 
   ngOnInit(): void {
@@ -111,7 +107,7 @@ export class TrailMakingTestBPageComponent implements AfterViewInit, OnDestroy, 
     this.canvasContext = canvas.getContext('2d')!;
     this.updateCanvasSize();
     this.resetTest();
-    this.restoreResult();
+    // this.restoreResult();
 
     this.resizeObserver = new ResizeObserver(() => {
       this.updateCanvasSize();
@@ -128,10 +124,9 @@ export class TrailMakingTestBPageComponent implements AfterViewInit, OnDestroy, 
     }
   }
 
-  start() {
+  private startTimer() {
     localStorage.removeItem(this.storageKey);
-    this.resetTest();
-    this.started = true;
+    this.isTimerRunning = true;
     this.startTime = Date.now();
     this.timerInterval = setInterval(() => this.updateTimerDisplay(), 100);
     this.updateTimerDisplay();
@@ -160,7 +155,7 @@ export class TrailMakingTestBPageComponent implements AfterViewInit, OnDestroy, 
     this.startTime = null;
     this.endTime = null;
     this.errorCount = 0;
-    this.started = false;
+    this.isTimerRunning = false;
     this.canProceed = false;
     this.showCompletionPopup = false;
     this.completionMessage = '';
@@ -168,45 +163,40 @@ export class TrailMakingTestBPageComponent implements AfterViewInit, OnDestroy, 
     this.timerInterval = null;
     this.setupNodes();
     this.drawAll();
-    this.updateTimerDisplay();
+    this.timerDisplay = '0.0';
   }
 
-  private generateDistributedCoordinates(count: number): { x: number; y: number }[] {
-    const coordinates: { x: number; y: number }[] = [];
-    const columns = Math.ceil(Math.sqrt((count * this.logicalWidth) / this.logicalHeight));
-    const rows = Math.ceil(count / columns);
-    const cellWidth = this.logicalWidth / columns;
-    const cellHeight = this.logicalHeight / rows;
-
-    const cells = Array.from({ length: rows * columns }, (_, index) => index);
-    for (let i = cells.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [cells[i], cells[j]] = [cells[j], cells[i]];
-    }
-
-    for (let i = 0; i < count && i < cells.length; i++) {
-      const cellIndex = cells[i];
-      const row = Math.floor(cellIndex / columns);
-      const column = cellIndex % columns;
-      const xMin = column * cellWidth + this.nodeRadius;
-      const xMax = (column + 1) * cellWidth - this.nodeRadius;
-      const yMin = row * cellHeight + this.nodeRadius;
-      const yMax = (row + 1) * cellHeight - this.nodeRadius;
-      const xRange = Math.max(xMax - xMin, 0);
-      const yRange = Math.max(yMax - yMin, 0);
-      const x = xMin + (xRange ? Math.random() * xRange : 0);
-      const y = yMin + (yRange ? Math.random() * yRange : 0);
-      coordinates.push({ x, y });
-    }
-
-    return coordinates;
+  // 修改：根據圖片重新對應座標 (19個節點)
+  private getFixedCoordinates(): { x: number, y: number }[] {
+    return [
+      { x: 270, y: 375 }, // 1 (Begin) - 中央
+      { x: 340, y: 550 }, // 鼠 (A) - 右下
+      { x: 180, y: 560 }, // 2 - 左下
+      { x: 270, y: 200 }, // 牛 (B) - 上中
+      { x: 400, y: 250 }, // 3 - 右上
+      { x: 380, y: 400 }, // 虎 (C) - 右中 (靠近1)
+      { x: 480, y: 360 }, // 4 - 右側邊緣
+      { x: 420, y: 650 }, // 兔 (D) - 右下角
+      { x: 110, y: 640 }, // 5 - 左下角
+      { x: 100, y: 440 }, // 龍 (E) - 左側邊緣
+      { x: 180, y: 350 }, // 6 - 左中 (靠近1)
+      { x: 200, y: 100 }, // 蛇 (F) - 左上
+      { x: 380, y: 80  }, // 7 - 右上頂部
+      { x: 490, y: 110 }, // 馬 (G) - 右上角
+      { x: 500, y: 300 }, // 8 - 右側邊緣 (G下面)
+      { x: 500, y: 700 }, // 羊 (H) - 右下底角
+      { x: 50,  y: 690 }, // 9 - 左下底角
+      { x: 50,  y: 250 }, // 猴 (I) - 左側 (補位，路徑 9->I->10)
+      { x: 80,  y: 120 }  // 10 (End) - 左上角
+    ];
   }
 
   private setupNodes() {
     this.nodes = [];
-    const coordinates = this.generateDistributedCoordinates(this.orderList.length);
+    const coordinates = this.getFixedCoordinates();
     for (let i = 0; i < this.orderList.length; i++) {
-      const node = { ...this.orderList[i], x: coordinates[i].x, y: coordinates[i].y } as TrailMakingBNode;
+      const coord = coordinates[i] || { x: 0, y: 0 };
+      const node = { ...this.orderList[i], x: coord.x, y: coord.y } as TrailMakingBNode;
       this.nodes.push(node);
     }
   }
@@ -216,6 +206,27 @@ export class TrailMakingTestBPageComponent implements AfterViewInit, OnDestroy, 
     this.drawLines();
     this.drawNodes();
     this.drawDraggingLine();
+    this.drawLabels();
+  }
+
+  private drawLabels() {
+    this.canvasContext.save();
+    this.canvasContext.fillStyle = '#000';
+    this.canvasContext.font = '20px serif';
+    this.canvasContext.textAlign = 'center';
+
+    // 1 號上方顯示 Begin
+    const node1 = this.nodes.find(n => n.label === '1');
+    if (node1) {
+      this.canvasContext.fillText('Begin', node1.x, node1.y - this.nodeRadius - 10);
+    }
+
+    // 最後一個 (10) 上方顯示 End
+    const nodeEnd = this.nodes[this.nodes.length - 1];
+    if (nodeEnd) {
+      this.canvasContext.fillText('End', nodeEnd.x, nodeEnd.y - this.nodeRadius - 10);
+    }
+    this.canvasContext.restore();
   }
 
   private drawLines() {
@@ -234,10 +245,6 @@ export class TrailMakingTestBPageComponent implements AfterViewInit, OnDestroy, 
   private drawNodes() {
     this.nodes.forEach(node => {
       this.canvasContext.save();
-      if (this.isNodeConnected(node)) {
-        this.canvasContext.shadowColor = '#09ff00ff';
-        this.canvasContext.shadowBlur = 15;
-      }
       this.canvasContext.beginPath();
       this.canvasContext.arc(node.x, node.y, this.nodeRadius, 0, Math.PI * 2);
       this.canvasContext.fillStyle = '#fff';
@@ -245,6 +252,7 @@ export class TrailMakingTestBPageComponent implements AfterViewInit, OnDestroy, 
       this.canvasContext.lineWidth = 2.2;
       this.canvasContext.strokeStyle = '#222';
       this.canvasContext.stroke();
+
       this.canvasContext.fillStyle = node.type === 'num' ? '#222' : '#1e50a2';
       const labelFontSize = this.isMobileLayout ? 24 : 19;
       this.canvasContext.font = `${labelFontSize}px bold sans-serif`;
@@ -268,10 +276,8 @@ export class TrailMakingTestBPageComponent implements AfterViewInit, OnDestroy, 
   }
 
   private isNodeConnected(node: TrailMakingBNode): boolean {
-    return (
-      (node.type === 'num' && node.label === '1') ||
-      this.lines.some(line => line.from === node || line.to === node)
-    );
+    if (node.type === 'num' && node.label === '1' && this.isTimerRunning) return true;
+    return this.lines.some(line => line.from === node || line.to === node);
   }
 
   private getNodeAt(x: number, y: number): TrailMakingBNode | null {
@@ -279,21 +285,30 @@ export class TrailMakingTestBPageComponent implements AfterViewInit, OnDestroy, 
   }
 
   canvasPointerStart(event: MouseEvent | TouchEvent) {
-    if (!this.started || this.dragging) return;
+    if (this.dragging) return;
     const pointer = this.pointerInputService.onPointerStart(event);
     if (!pointer) return;
     const coords = this.toCanvasCoordinates(pointer);
     const node = this.getNodeAt(coords.x, coords.y);
-    if (this.lines.length === 0 && node && node.type === 'num' && node.label === '1') {
-      this.dragging = true;
-      this.lastNode = node;
-      this.activePointerId = pointer.identifier;
-    } else if (this.lines.length > 0) {
-      const expected = this.orderList[this.lines.length];
-      if (node && node.type === expected.type && node.label === expected.label) {
+
+    if (!node) return;
+
+    if (!this.isTimerRunning && node.type === 'num' && node.label === '1') {
+      this.startTimer();
+    }
+
+    if (this.isTimerRunning) {
+      if (this.lines.length === 0 && node.type === 'num' && node.label === '1') {
         this.dragging = true;
         this.lastNode = node;
         this.activePointerId = pointer.identifier;
+      } else if (this.lines.length > 0) {
+        const expected = this.orderList[this.lines.length];
+        if (node && node.type === expected.type && node.label === expected.label) {
+          this.dragging = true;
+          this.lastNode = node;
+          this.activePointerId = pointer.identifier;
+        }
       }
     }
     this.drawAll();
@@ -328,14 +343,17 @@ export class TrailMakingTestBPageComponent implements AfterViewInit, OnDestroy, 
         const result = { duration, errors: this.errorCount };
         this.completionMessage =
           `完成！總花費時間：${duration.toFixed(1)} 秒\n\n接下來由醫護人操作，請將裝置交給醫護人員。`;
-        this.showCompletionPopup = true;
-        localStorage.setItem(this.storageKey, JSON.stringify(result));
-        this.canProceed = true;
+
+        setTimeout(() => {
+          this.showCompletionPopup = true;
+          localStorage.setItem(this.storageKey, JSON.stringify(result));
+          this.canProceed = true;
+        }, 50);
       }
     } else if (nextNode && nextNode !== this.lastNode) {
-      const currentExpected = this.orderList[this.lines.length];
-      const nextTypeLabel = currentExpected.type === 'num' ? '生肖' : '數字';
-      alert(`你剛連到 ${this.lastNode.label}，下一個${nextTypeLabel}是什麼？`);
+      this.errorCount++;
+      const actuallyExpected = this.orderList[this.lines.length + 1];
+      alert(`錯誤！你剛連到 ${this.lastNode.label}，下一個要連甚麼?`);
     }
     this.dragging = false;
     this.currentPath = [];
@@ -356,10 +374,10 @@ export class TrailMakingTestBPageComponent implements AfterViewInit, OnDestroy, 
   nextPage() {
     if (!this.canProceed) {
       alert('請先完成測驗');
-      this.showIncompleteWarning = true; // 顯示下方的視覺提示
-      return; // Early Return
+      this.showIncompleteWarning = true;
+      return;
     }
-    this.showIncompleteWarning = false; // 清理提示狀態
+    this.showIncompleteWarning = false;
     this.router.navigate(['/memory-decline']);
   }
 
@@ -369,7 +387,6 @@ export class TrailMakingTestBPageComponent implements AfterViewInit, OnDestroy, 
     const result = JSON.parse(saved);
     this.timerDisplay = result.duration.toFixed(1);
     this.canProceed = true;
-    this.showIncompleteWarning = false; // 若有歷史結果，進入時就不顯示警告
   }
 
   private toCanvasCoordinates(pointer: NormalizedPointerEvent): { x: number; y: number } {
@@ -388,10 +405,8 @@ export class TrailMakingTestBPageComponent implements AfterViewInit, OnDestroy, 
     this.isMobileLayout = window.matchMedia('(max-width: 600px)').matches;
     this.nodeRadius = this.isMobileLayout ? this.mobileNodeRadius : this.desktopNodeRadius;
 
-    // Keep a stable logical drawing size on tablet/desktop while giving mobile
-    // 1/3 extra height so the layout breathes without altering rules.
     this.logicalWidth = this.baseWidth;
-    this.logicalHeight = this.baseHeight * (this.isMobileLayout ? this.mobileHeightMultiplier : 1);
+    this.logicalHeight = this.baseHeight;
 
     canvas.width = this.logicalWidth * this.devicePixelRatio;
     canvas.height = this.logicalHeight * this.devicePixelRatio;

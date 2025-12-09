@@ -8,7 +8,6 @@ import { PointerInputService } from '../../service/pointer-input.service';
 import { NormalizedPointerEvent } from '../../models/pointer-input';
 import { GuestAuthService } from '../../service/guest-auth.service';
 
-
 @Component({
   selector: 'app-trail-making-test-a-page',
   imports: [CommonModule],
@@ -20,16 +19,19 @@ export class TrailMakingTestAPageComponent implements AfterViewInit, OnDestroy, 
   private canvasContext!: CanvasRenderingContext2D;
   private resizeObserver: ResizeObserver | null = null;
   private devicePixelRatio = window.devicePixelRatio || 1;
-  private readonly baseWidth = 700;
-  private readonly baseHeight = 500;
-  private readonly mobileHeightMultiplier = 3 / 2;
+
+  // 修改：調整為直向比例 (類似 A4 或圖片比例)
+  private readonly baseWidth = 540;
+  private readonly baseHeight = 750;
   private logicalWidth = this.baseWidth;
   private logicalHeight = this.baseHeight;
 
-  private readonly totalNodeCount = 25;
-  private readonly desktopNodeRadius = 29;
-  private readonly mobileNodeRadius = 40;
+  // 修改：總數改為 20 以符合圖片 (若需 25 可再新增座標)
+  private readonly totalNodeCount = 20;
+  private readonly desktopNodeRadius = 24; // 稍微縮小一點以適應密集度
+  private readonly mobileNodeRadius = 30;
   private nodeRadius = this.desktopNodeRadius;
+
   nodes: TrailMakingANode[] = [];
   lines: TrailMakingALine[] = [];
   dragging = false;
@@ -41,25 +43,25 @@ export class TrailMakingTestAPageComponent implements AfterViewInit, OnDestroy, 
   endTime: number | null = null;
   timerInterval: ReturnType<typeof setInterval> | null = null;
   errorCount = 0;
-  started = false;
+
+  // 修改：預設為 true 以便隨時偵測點擊，但計時器尚未開始
+  started = true;
+  isTimerRunning = false; // 新增：用來判斷是否正式開始計時
+
   timerDisplay = '0.0';
   canProceed = false;
 
   showRules = true;
   rulesMessage = "【遊戲規則】\n" +
-  "1. 請依序由小到大，點擊畫面上數字圓圈並拖曳連線。\n" +
-  "2. 只能依序連線，錯誤連線會有提醒，並記錄錯誤次數。\n" +
-  "3. 點擊「開始連線測驗」後開始計時，完成全部連線即結束並顯示用時與錯誤數。\n\n" +
-  "請點擊下方「開始連線測驗」按鈕開始遊戲！";
+  "1. 請依序由小到大 (1 -> 2 -> 3...) 連線。\n" +
+  "2. 點擊「數字 1」並開始拖曳時，系統將自動開始計時。\n" +
+  "3. 完成所有連線後，將顯示花費時間與錯誤次數。\n\n" +
+  "請按「確定」後，直接點擊畫面上的 ① 開始！";
 
   showIncompleteWarning: boolean = false;
-
   private isMobileLayout = false;
-
   user: User | null = null;
-
   private readonly storageKey = 'trailMakingTestAResult';
-
   private readonly guestAuth = inject(GuestAuthService);
 
   constructor(
@@ -78,8 +80,9 @@ export class TrailMakingTestAPageComponent implements AfterViewInit, OnDestroy, 
     const canvas = this.canvasRef.nativeElement;
     this.canvasContext = canvas.getContext('2d')!;
     this.updateCanvasSize();
+    // 移除 restoreResult() 以確保每次進來都是新的測驗狀態，或者保留看你需求
+    // this.restoreResult();
     this.resetTest();
-    this.restoreResult();
 
     this.resizeObserver = new ResizeObserver(() => {
       this.updateCanvasSize();
@@ -105,21 +108,13 @@ export class TrailMakingTestAPageComponent implements AfterViewInit, OnDestroy, 
     this.startTime = null;
     this.endTime = null;
     this.errorCount = 0;
-    this.started = false;
+    this.isTimerRunning = false;
     this.canProceed = false;
     if (this.timerInterval) clearInterval(this.timerInterval);
     this.timerInterval = null;
     this.setupNodes();
     this.drawAll();
-    this.updateTimerDisplay();
-  }
-
-  start() {
-    localStorage.removeItem(this.storageKey);
-    this.resetTest();
-    this.started = true;
-    this.startTime = Date.now();
-    this.timerInterval = setInterval(() => this.updateTimerDisplay(), 100);
+    this.timerDisplay = '0.0';
   }
 
   closeRules() {
@@ -136,43 +131,39 @@ export class TrailMakingTestAPageComponent implements AfterViewInit, OnDestroy, 
     }
   }
 
-  private generateDistributedCoordinates(count: number): TrailMakingANode[] {
-    const coordinates: TrailMakingANode[] = [];
-    const columns = Math.ceil(Math.sqrt((count * this.logicalWidth) / this.logicalHeight));
-    const rows = Math.ceil(count / columns);
-    const cellWidth = this.logicalWidth / columns;
-    const cellHeight = this.logicalHeight / rows;
-
-    const cells = Array.from({ length: rows * columns }, (_, index) => index);
-    for (let i = cells.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [cells[i], cells[j]] = [cells[j], cells[i]];
-    }
-
-    for (let i = 0; i < count && i < cells.length; i++) {
-      const cellIndex = cells[i];
-      const row = Math.floor(cellIndex / columns);
-      const column = cellIndex % columns;
-      const xMin = column * cellWidth + this.nodeRadius;
-      const xMax = (column + 1) * cellWidth - this.nodeRadius;
-      const yMin = row * cellHeight + this.nodeRadius;
-      const yMax = (row + 1) * cellHeight - this.nodeRadius;
-      const xRange = Math.max(xMax - xMin, 0);
-      const yRange = Math.max(yMax - yMin, 0);
-      const x = xMin + (xRange ? Math.random() * xRange : 0);
-      const y = yMin + (yRange ? Math.random() * yRange : 0);
-      coordinates.push({ label: coordinates.length + 1, x, y });
-    }
-
-    return coordinates;
+  // 修改：使用固定座標 (基於 540x750 的畫布模擬圖片位置)
+  private getFixedCoordinates(): { x: number, y: number }[] {
+    return [
+      { x: 380, y: 360 }, // 1 (Begin)
+      { x: 260, y: 440 }, // 2
+      { x: 440, y: 510 }, // 3
+      { x: 430, y: 230 }, // 4
+      { x: 210, y: 240 }, // 5
+      { x: 310, y: 310 }, // 6
+      { x: 210, y: 370 }, // 7
+      { x: 100, y: 460 }, // 8
+      { x: 140, y: 550 }, // 9
+      { x: 190, y: 470 }, // 10
+      { x: 340, y: 600 }, // 11
+      { x: 50,  y: 630 }, // 12
+      { x: 100, y: 310 }, // 13
+      { x: 60,  y: 60 },  // 14 (Top Left)
+      { x: 100, y: 160 }, // 15
+      { x: 270, y: 40 },  // 16 (Top Center)
+      { x: 380, y: 160 }, // 17
+      { x: 480, y: 50 },  // 18 (Top Right)
+      { x: 460, y: 660 }, // 19 (Bottom Right)
+      { x: 160, y: 700 }, // 20 (End)
+    ];
   }
 
   private setupNodes() {
-    const coordinates = this.generateDistributedCoordinates(this.totalNodeCount);
-    const numbers = Array.from({ length: this.totalNodeCount }, (_, i) => i + 1).sort(() => Math.random() - 0.5);
-    for (let i = 0; i < this.totalNodeCount; i++) {
-      this.nodes.push({ label: numbers[i], x: coordinates[i].x, y: coordinates[i].y });
+    const coords = this.getFixedCoordinates();
+    // 確保只取設定的數量
+    for (let i = 0; i < this.totalNodeCount && i < coords.length; i++) {
+      this.nodes.push({ label: i + 1, x: coords[i].x, y: coords[i].y });
     }
+    // 這裡不需要 sort，因為固定座標已經照順序排好了，但為了保險起見：
     this.nodes.sort((a, b) => a.label - b.label);
   }
 
@@ -181,6 +172,28 @@ export class TrailMakingTestAPageComponent implements AfterViewInit, OnDestroy, 
     this.drawLines();
     this.drawNodes();
     this.drawDraggingLine();
+    this.drawLabels(); // 新增：繪製 Begin/End 文字
+  }
+
+  // 新增：繪製 Begin 和 End 標示
+  private drawLabels() {
+    this.canvasContext.save();
+    this.canvasContext.fillStyle = '#000';
+    this.canvasContext.font = '20px serif';
+    this.canvasContext.textAlign = 'center';
+
+    // 1 號上方顯示 Begin
+    const node1 = this.nodes.find(n => n.label === 1);
+    if (node1) {
+      this.canvasContext.fillText('Begin', node1.x, node1.y - this.nodeRadius - 10);
+    }
+
+    // 最後一個號碼上方顯示 End
+    const nodeEnd = this.nodes.find(n => n.label === this.totalNodeCount);
+    if (nodeEnd) {
+      this.canvasContext.fillText('End', nodeEnd.x, nodeEnd.y - this.nodeRadius - 10);
+    }
+    this.canvasContext.restore();
   }
 
   private drawLines() {
@@ -199,10 +212,6 @@ export class TrailMakingTestAPageComponent implements AfterViewInit, OnDestroy, 
   private drawNodes() {
     this.nodes.forEach(node => {
       this.canvasContext.save();
-      if (this.isNodeConnected(node)) {
-        this.canvasContext.shadowColor = '#09ff00ff';
-        this.canvasContext.shadowBlur = 15;
-      }
       this.canvasContext.beginPath();
       this.canvasContext.arc(node.x, node.y, this.nodeRadius, 0, Math.PI * 2);
       this.canvasContext.fillStyle = '#fff';
@@ -233,7 +242,9 @@ export class TrailMakingTestAPageComponent implements AfterViewInit, OnDestroy, 
   }
 
   private isNodeConnected(node: TrailMakingANode): boolean {
-    return node.label === 1 || this.lines.some(line => line.from === node || line.to === node);
+    // 只有當計時開始後，1 號才算被連線 (亮起)
+    if (node.label === 1 && this.isTimerRunning) return true;
+    return this.lines.some(line => line.from === node || line.to === node);
   }
 
   private getNodeAt(x: number, y: number): TrailMakingANode | null {
@@ -244,22 +255,40 @@ export class TrailMakingTestAPageComponent implements AfterViewInit, OnDestroy, 
   }
 
   canvasPointerStart(event: MouseEvent | TouchEvent) {
-    if (!this.started || this.dragging) return;
+    if (this.dragging) return; // 防止多點觸控干擾
     const pointer = this.pointerInputService.onPointerStart(event);
     if (!pointer) return;
     const coords = this.toCanvasCoordinates(pointer);
     const node = this.getNodeAt(coords.x, coords.y);
+
     if (!node) return;
-    if (this.lines.length === 0 && node.label === 1) {
-      this.dragging = true;
-      this.lastNode = node;
-      this.activePointerId = pointer.identifier;
-    } else if (this.lines.length > 0 && node.label === this.lines.length + 1) {
-      this.dragging = true;
-      this.lastNode = node;
-      this.activePointerId = pointer.identifier;
+
+    // 邏輯修改：第一次點擊 1 號時，觸發計時開始
+    if (!this.isTimerRunning && node.label === 1) {
+        this.startTimer();
     }
+
+    if (this.isTimerRunning) {
+        if (this.lines.length === 0 && node.label === 1) {
+            this.dragging = true;
+            this.lastNode = node;
+            this.activePointerId = pointer.identifier;
+        } else if (this.lines.length > 0 && node.label === this.lines.length + 1) {
+            this.dragging = true;
+            this.lastNode = node;
+            this.activePointerId = pointer.identifier;
+        }
+    }
+
     this.drawAll();
+  }
+
+  // 新增：獨立的開始計時函式
+  private startTimer() {
+      localStorage.removeItem(this.storageKey);
+      this.isTimerRunning = true;
+      this.startTime = Date.now();
+      this.timerInterval = setInterval(() => this.updateTimerDisplay(), 100);
   }
 
   canvasPointerMove(event: MouseEvent | TouchEvent) {
@@ -278,27 +307,38 @@ export class TrailMakingTestAPageComponent implements AfterViewInit, OnDestroy, 
     const coords = this.toCanvasCoordinates(pointer);
     const nextNode = this.getNodeAt(coords.x, coords.y);
     const expectedLabel = this.lines.length + 2;
+
     if (nextNode && nextNode.label === expectedLabel && nextNode !== this.lastNode) {
       this.lines.push({ from: this.lastNode, to: nextNode });
       this.lastNode = nextNode;
       if (nextNode.label === this.totalNodeCount) {
-        this.dragging = false;
-        this.endTime = Date.now();
-        this.updateTimerDisplay();
-          if (this.timerInterval !== null) clearInterval(this.timerInterval);
-        const duration = (this.endTime - (this.startTime || 0)) / 1000;
-        const result = { duration, errors: this.errorCount };
-        alert(`完成！總花費時間：${duration.toFixed(1)} 秒`);
-        localStorage.setItem(this.storageKey, JSON.stringify(result));
-        this.canProceed = true;
+        this.finishTest();
       }
     } else if (nextNode && nextNode !== this.lastNode) {
-      alert(`錯誤！你剛連到數字 ${this.lastNode?.label}，下一個數字是什麼？`);
+      this.errorCount++; // 記錄錯誤
+      alert(`錯誤！你剛連到數字 ${this.lastNode?.label}，下一個要連甚麼?`);
     }
     this.dragging = false;
     this.currentPath = [];
     this.activePointerId = null;
     this.drawAll();
+  }
+
+  private finishTest() {
+      this.dragging = false;
+      this.endTime = Date.now();
+      this.updateTimerDisplay();
+      if (this.timerInterval !== null) clearInterval(this.timerInterval);
+
+      const duration = (this.endTime - (this.startTime || 0)) / 1000;
+      const result = { duration, errors: this.errorCount };
+
+      // 稍微延遲一點讓線條畫完再跳視窗
+      setTimeout(() => {
+          alert(`完成！總花費時間：${duration.toFixed(1)} 秒\n錯誤次數：${this.errorCount}`);
+          localStorage.setItem(this.storageKey, JSON.stringify(result));
+          this.canProceed = true;
+      }, 50);
   }
 
   canvasPointerCancel(event: TouchEvent) {
@@ -314,20 +354,20 @@ export class TrailMakingTestAPageComponent implements AfterViewInit, OnDestroy, 
   nextPage() {
     if (!this.canProceed) {
       alert('請先完成測驗');
-      this.showIncompleteWarning = true; // 顯示下方的視覺提示
-      return; // Early Return
+      this.showIncompleteWarning = true;
+      return;
     }
-    this.showIncompleteWarning = false; // 清理提示狀態
+    this.showIncompleteWarning = false;
     this.router.navigate(['/trail-making-test-b']);
   }
 
   private restoreResult() {
+    // 雖然移除了自動 restore 邏輯，但保留此函式結構以防萬一需要
     const saved = localStorage.getItem(this.storageKey);
     if (!saved) return;
     const result = JSON.parse(saved);
     this.timerDisplay = result.duration.toFixed(1);
     this.canProceed = true;
-    this.showIncompleteWarning = false; // 若有歷史結果，進入時就不顯示警告
   }
 
   private toCanvasCoordinates(pointer: NormalizedPointerEvent): { x: number; y: number } {
@@ -346,10 +386,9 @@ export class TrailMakingTestAPageComponent implements AfterViewInit, OnDestroy, 
     this.isMobileLayout = window.matchMedia('(max-width: 600px)').matches;
     this.nodeRadius = this.isMobileLayout ? this.mobileNodeRadius : this.desktopNodeRadius;
 
-    // Maintain a consistent logical coordinate space (700x500) on tablet/desktop,
-    // while giving mobile 1/3 extra height to reduce crowding without changing rules.
+    // 修改：無論手機或桌機，都維持圖片的長寬比邏輯
     this.logicalWidth = this.baseWidth;
-    this.logicalHeight = this.baseHeight * (this.isMobileLayout ? this.mobileHeightMultiplier : 1);
+    this.logicalHeight = this.baseHeight;
 
     canvas.width = this.logicalWidth * this.devicePixelRatio;
     canvas.height = this.logicalHeight * this.devicePixelRatio;

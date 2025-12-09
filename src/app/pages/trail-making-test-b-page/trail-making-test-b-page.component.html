@@ -2,8 +2,10 @@
   <h2>數字、生肖連線測驗</h2>
   <div class="tmt-info">
     <span>時間: {{timerDisplay}} 秒</span>
+    <!--<span>錯誤: {{errorCount}}</span>-->
   </div>
-  <canvas #canvas width="700" height="500"
+
+  <canvas #canvas width="540" height="750"
     (mousedown)="canvasPointerStart($event)"
     (mousemove)="canvasPointerMove($event)"
     (mouseup)="canvasPointerEnd($event)"
@@ -12,10 +14,8 @@
     (touchend)="canvasPointerEnd($event)"
     (touchcancel)="canvasPointerCancel($event)">
   </canvas>
-  @if (!started) {
-    <button class="tmt-start-btn" (click)="start()">開始連線測驗</button>
-  }
-</div>
+
+  </div>
 
 <button
   class="next-btn"
