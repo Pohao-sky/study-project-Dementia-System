@@ -1,7 +1,7 @@
 後端資料夾:cd C:\study-project-Dementia-System
 
 
-flask執行:python backend\python_run.py
+flask執行:python backend\app.py
 
 
 angular:npm start
@@ -17,3 +17,4 @@ mkcert -uninstall
 cd C:\study-project-Dementia-System\certs
 mkcert localhost 127.0.0.1 ::1 192.168.0.12
 改完簽證要去angular.json改檔名
+
