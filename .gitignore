@@ -43,3 +43,8 @@ Thumbs.db
 
 # key
 certs/
+.env
+
+# config
+config.json
+sqlserver_config.json
