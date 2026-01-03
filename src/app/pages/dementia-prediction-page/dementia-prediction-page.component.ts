@@ -25,7 +25,7 @@ export class DementiaPredictionPageComponent implements OnInit {
   get predictionMessage(): string {
     if (!this.result) return '';
     return this.result.prediction === 0
-      ? '預測結果：2年內無失智症風險'
+      ? '預測結果：2年內低失智症風險'
       : '預測結果：2年內可能罹患失智症，建議做進一步檢查';
   }
 
