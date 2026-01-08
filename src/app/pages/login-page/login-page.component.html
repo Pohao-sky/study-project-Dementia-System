@@ -28,11 +28,25 @@
       登入
     </button>
   </form>
+
   @if(infoMsg){
     <div class="elder-info">{{infoMsg}}</div>
   }
   @if(errorMsg){
     <div class="elder-error">{{errorMsg}}</div>
   }
-<a routerLink="/guest-mode" class="guest-link">訪客模式登入</a>
+
+  <div class="manual-container">
+    <p class="divider">系統手冊</p>
+    <div class="manual-buttons">
+      <a href="/失智症檢測系統使用手冊.pdf" download="失智症檢測系統使用手冊.pdf" class="manual-btn">
+        📥 下載使用手冊
+      </a>
+      <a href="/失智症檢測系統維護手冊.pdf" download="失智症檢測系統系統維護手冊.pdf" class="manual-btn">
+        📥 下載維護手冊
+      </a>
+    </div>
+  </div>
+
+  <a routerLink="/guest-mode" class="guest-link">訪客模式登入</a>
 </div>
